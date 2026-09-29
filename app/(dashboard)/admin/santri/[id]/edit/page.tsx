@@ -13,7 +13,8 @@ import { Loader2, Camera, Trash2, User } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 
 interface ClassOption { value: string; label: string; }
-interface HalaqahOption { value: string; label: string; }
+interface HalaqahOption { value: string; label: string; jenjangName?: string | null; }
+interface KelasOption { value: string; label: string; levelId?: string | null; levelName?: string | null; }
 interface StudentData {
   id: string;
   nis: string;
@@ -26,6 +27,8 @@ interface StudentData {
   class_name: string;
   halaqah_id: string | null;
   halaqah_name: string | null;
+  kelas_id: string | null;
+  kelas_name: string | null;
   academic_year_id: string | null;
   enrollment_date: string | null;
   father_name: string;
@@ -44,6 +47,7 @@ export default function AdminEditSantriPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [halaqahs, setHalaqahs] = useState<HalaqahOption[]>([]);
+  const [kelasList, setKelasList] = useState<KelasOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [student, setStudent] = useState<StudentData | null>(null);
@@ -56,6 +60,7 @@ export default function AdminEditSantriPage() {
     address: "",
     classId: "",
     halaqahId: "",
+    kelasId: "",
     academicYearId: "",
     enrollmentDate: "",
     fatherName: "",
@@ -69,11 +74,12 @@ export default function AdminEditSantriPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/santri/${id}`).then((r) => r.json()),
-      fetch("/api/master/classes").then((r) => r.json()).then((data) => setClasses(data.map((c: any) => ({ value: c.id, label: c.name })))),
-      fetch("/api/master/halaqahs").then((r) => r.json()).then((data) => setHalaqahs(data.map((h: any) => ({ value: h.id, label: h.name })))),
+      fetch(`/api/santri/${id}`).then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/master/classes").then((r) => (r.ok ? r.json() : [])).then((data) => setClasses(Array.isArray(data) ? data.map((c: any) => ({ value: c.id, label: c.name })) : [])),
+      fetch("/api/master/halaqahs").then((r) => (r.ok ? r.json() : [])).then((data) => setHalaqahs(Array.isArray(data) ? data.map((h: any) => ({ value: h.id, label: h.name, jenjangName: h.jenjang_name })) : [])),
+      fetch("/api/master/kelas").then((r) => (r.ok ? r.json() : [])).then((data) => setKelasList(Array.isArray(data) ? data.map((k: any) => ({ value: k.id, label: k.name, levelId: k.level_id, levelName: k.level_name })) : [])),
     ]).then(([studentData]) => {
-      if (studentData.student) {
+      if (studentData && studentData.student) {
         const s = studentData.student;
         setStudent(s);
         setForm({
@@ -85,6 +91,7 @@ export default function AdminEditSantriPage() {
           address: s.address || "",
           classId: s.class_id || "",
           halaqahId: s.halaqah_id || "",
+          kelasId: s.kelas_id || "",
           academicYearId: s.academic_year_id || "",
           enrollmentDate: s.enrollment_date || "",
           fatherName: s.father_name,
@@ -95,10 +102,20 @@ export default function AdminEditSantriPage() {
           notes: s.notes || "",
           status: s.status,
         });
+        setLoading(false);
       }
-      setLoading(false);
     }).catch(() => { setLoading(false); toast.error("Gagal memuat data santri"); });
   }, [id]);
+
+  // Jenjang → Level → Kelas. Kelas hanya boleh dipilih dari level yang aktif,
+  // dan level difilter mengikuti jenjang yang dipilih.
+  const selectedJenjangName = classes.find((c) => c.value === form.classId)?.label;
+  const availableHalaqahs = form.classId
+    ? halaqahs.filter((h) => !h.jenjangName || !selectedJenjangName || h.jenjangName === selectedJenjangName)
+    : halaqahs;
+  const availableKelas = form.halaqahId
+    ? kelasList.filter((k) => k.levelId === form.halaqahId)
+    : [];
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -148,7 +165,9 @@ export default function AdminEditSantriPage() {
           class_id: form.classId || null,
           class_name: classes.find((c) => c.value === form.classId)?.label || "",
           halaqah_id: form.halaqahId || null,
-          halaqah_name: halaqahs.find((h) => h.value === form.halaqahId)?.label || "",
+          halaqah_name: halaqahs.find((h) => h.value === form.halaqahId)?.label || null,
+          kelas_id: form.kelasId || null,
+          kelas_name: kelasList.find((k) => k.value === form.kelasId)?.label || null,
           academic_year_id: form.academicYearId || null,
           enrollment_date: form.enrollmentDate || null,
           father_name: form.fatherName,
@@ -282,7 +301,7 @@ export default function AdminEditSantriPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="classId" className="text-xs font-bold text-slate-800">Jenjang</Label>
-                <Select value={form.classId} onValueChange={(v) => setForm({ ...form, classId: v })}>
+                <Select value={form.classId} onValueChange={(v) => setForm({ ...form, classId: v, halaqahId: "", kelasId: "" })}>
                   <SelectTrigger><SelectValue placeholder="Pilih jenjang" /></SelectTrigger>
                   <SelectContent>
                     {classes.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
@@ -291,13 +310,26 @@ export default function AdminEditSantriPage() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="halaqahId" className="text-xs font-bold text-slate-800">Level</Label>
-                <Select value={form.halaqahId} onValueChange={(v) => setForm({ ...form, halaqahId: v })}>
+                <Select value={form.halaqahId} onValueChange={(v) => setForm({ ...form, halaqahId: v, kelasId: "" })}>
                   <SelectTrigger><SelectValue placeholder="Pilih level" /></SelectTrigger>
                   <SelectContent>
-                    {halaqahs.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
+                    {availableHalaqahs.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="kelasId" className="text-xs font-bold text-slate-800">Kelas</Label>
+                <Select value={form.kelasId} onValueChange={(v) => setForm({ ...form, kelasId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Pilih kelas" /></SelectTrigger>
+                  <SelectContent>
+                    {availableKelas.map((k) => <SelectItem key={k.value} value={k.value}>{k.label}</SelectItem>)}
+                    {availableKelas.length === 0 && <SelectItem value="" disabled>Belum ada kelas untuk level ini</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="enrollmentDate" className="text-xs font-bold text-slate-800">Tanggal Masuk</Label>
                 <Input id="enrollmentDate" type="date" value={form.enrollmentDate} onChange={(e) => setForm({ ...form, enrollmentDate: e.target.value })} />

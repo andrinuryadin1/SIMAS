@@ -11,7 +11,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const { id } = await params;
   try {
     const body = await request.json();
-    const { jenjang, level, category, aspectName, description, orderIndex } = body;
+    const { jenjang, level, kelas, category, aspectName, description, orderIndex } = body;
 
     const updates: string[] = [];
     const values: unknown[] = [];
@@ -23,6 +23,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     if (level !== undefined) {
       updates.push("level = ?");
       values.push(level || null);
+    }
+    if (kelas !== undefined) {
+      updates.push("kelas = ?");
+      values.push(kelas || null);
     }
     if (category !== undefined) {
       updates.push("category = ?");
@@ -43,7 +47,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
     if (updates.length > 0) {
       values.push(id);
-      db.prepare(`UPDATE progress_aspects SET ${updates.join(", ")} WHERE id = ?`).run(...values);
+      await db.prepare(`UPDATE progress_aspects SET ${updates.join(", ")} WHERE id = ?`).run(...values);
     }
 
     return NextResponse.json({ message: "Aspek perkembangan berhasil diperbarui" });
@@ -59,7 +63,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
 
   const { id } = await params;
   try {
-    db.prepare("DELETE FROM progress_aspects WHERE id = ?").run(id);
+    await db.prepare("DELETE FROM progress_aspects WHERE id = ?").run(id);
     return NextResponse.json({ message: "Aspek perkembangan berhasil dihapus" });
   } catch (err) {
     console.error("DELETE /api/master/progress-aspects/[id] error:", err);

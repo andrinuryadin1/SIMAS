@@ -23,6 +23,10 @@ const UPDATABLE: Record<string, string> = {
   halaqahId: "halaqah_id",
   halaqah_name: "halaqah_name",
   halaqahName: "halaqah_name",
+  kelas_id: "kelas_id",
+  kelasId: "kelas_id",
+  kelas_name: "kelas_name",
+  kelasName: "kelas_name",
   academic_year_id: "academic_year_id",
   academicYearId: "academic_year_id",
   enrollment_date: "enrollment_date",
@@ -130,6 +134,19 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         }
       } else {
         sets.push("halaqah_name = ?");
+        values.push(null);
+      }
+    }
+    if (body.kelas_id !== undefined || body.kelasId !== undefined) {
+      const kelasId = body.kelas_id ?? body.kelasId;
+      if (kelasId) {
+        const k = await db.prepare("SELECT name FROM kelas WHERE id = ?").get(kelasId) as { name: string } | undefined;
+        if (k) {
+          sets.push("kelas_name = ?");
+          values.push(k.name);
+        }
+      } else {
+        sets.push("kelas_name = ?");
         values.push(null);
       }
     }

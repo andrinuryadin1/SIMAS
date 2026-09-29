@@ -17,9 +17,10 @@ async function count(sql: string, ...params: unknown[]): Promise<number> {
 export async function getStudents(filters?: {
   classId?: string;
   halaqahId?: string;
+  kelasId?: string;
 }): Promise<StudentRow[]> {
   let query =
-    "SELECT id, nis, full_name, gender, birth_date, birth_place, address, class_id, class_name, halaqah_id, halaqah_name, academic_year_id, enrollment_date, father_name, mother_name, guardian_name, guardian_phone, photo_url, status, notes FROM students";
+    "SELECT id, nis, full_name, gender, birth_date, birth_place, address, class_id, class_name, halaqah_id, halaqah_name, kelas_id, kelas_name, academic_year_id, enrollment_date, father_name, mother_name, guardian_name, guardian_phone, photo_url, status, notes FROM students";
   const conditions: string[] = [];
   const params: unknown[] = [];
 
@@ -31,6 +32,10 @@ export async function getStudents(filters?: {
     conditions.push("halaqah_id = ?");
     params.push(filters.halaqahId);
   }
+  if (filters?.kelasId) {
+    conditions.push("kelas_id = ?");
+    params.push(filters.kelasId);
+  }
   if (conditions.length > 0) query += " WHERE " + conditions.join(" AND ");
   query += " ORDER BY full_name";
   return db.prepare(query).all<StudentRow>(...params);
@@ -41,7 +46,7 @@ export async function getStudentById(
 ): Promise<StudentRow | undefined> {
   return db
     .prepare(
-      "SELECT id, nis, full_name, gender, birth_date, birth_place, address, class_id, class_name, halaqah_id, halaqah_name, academic_year_id, enrollment_date, father_name, mother_name, guardian_name, guardian_phone, photo_url, status, notes FROM students WHERE id = ?"
+      "SELECT id, nis, full_name, gender, birth_date, birth_place, address, class_id, class_name, halaqah_id, halaqah_name, kelas_id, kelas_name, academic_year_id, enrollment_date, father_name, mother_name, guardian_name, guardian_phone, photo_url, status, notes FROM students WHERE id = ?"
     )
     .get<StudentRow>(id);
 }
@@ -51,7 +56,7 @@ export async function getStudentsByHalaqah(
 ): Promise<StudentRow[]> {
   return db
     .prepare(
-      "SELECT id, nis, full_name, gender, birth_date, birth_place, address, class_id, class_name, halaqah_id, halaqah_name, academic_year_id, enrollment_date, father_name, mother_name, guardian_name, guardian_phone, photo_url, status, notes FROM students WHERE halaqah_id = ? AND status = 'aktif' ORDER BY full_name"
+      "SELECT id, nis, full_name, gender, birth_date, birth_place, address, class_id, class_name, halaqah_id, halaqah_name, kelas_id, kelas_name, academic_year_id, enrollment_date, father_name, mother_name, guardian_name, guardian_phone, photo_url, status, notes FROM students WHERE halaqah_id = ? AND status = 'aktif' ORDER BY full_name"
     )
     .all<StudentRow>(halaqahId);
 }
@@ -71,6 +76,19 @@ export interface HalaqahOption {
   id: string;
   name: string;
   pembina: string | null;
+}
+
+export interface KelasOption {
+  id: string;
+  name: string;
+  jenjang_name: string;
+  level_name: string;
+}
+
+export async function getKelasOptions(): Promise<KelasOption[]> {
+  return db
+    .prepare("SELECT id, name, jenjang_name, level_name FROM kelas ORDER BY name")
+    .all<KelasOption>();
 }
 
 export async function getHalaqahOptions(): Promise<HalaqahOption[]> {
@@ -778,6 +796,8 @@ export interface StudentRow {
   class_name: string;
   halaqah_id: string | null;
   halaqah_name: string | null;
+  kelas_id: string | null;
+  kelas_name: string | null;
   academic_year_id: string | null;
   enrollment_date: string | null;
   father_name: string | null;

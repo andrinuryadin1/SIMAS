@@ -6,6 +6,7 @@ import { getSessionOrError, parseBody, generateId } from "@/lib/api-utils";
 const AspectSchema = z.object({
   jenjang: z.string().min(1, "Jenjang wajib diisi"),
   level: z.string().optional().nullable(),
+  kelas: z.string().optional().nullable(),
   category: z.string().min(1, "Kategori aspek wajib diisi"),
   aspectName: z.string().min(1, "Nama aspek wajib diisi"),
   description: z.string().optional().nullable(),
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const jenjang = searchParams.get("jenjang");
   const level = searchParams.get("level");
+  const kelas = searchParams.get("kelas");
 
   let query = "SELECT * FROM progress_aspects WHERE 1=1";
   const params: unknown[] = [];
@@ -33,9 +35,14 @@ export async function GET(request: NextRequest) {
     params.push(level);
   }
 
+  if (kelas && kelas !== "Semua") {
+    query += " AND (kelas = ? OR kelas = 'Semua' OR kelas IS NULL)";
+    params.push(kelas);
+  }
+
   query += " ORDER BY order_index ASC, category ASC, aspect_name ASC";
 
-  const aspects = db.prepare(query).all(...params);
+  const aspects = await db.prepare(query).all(...params);
   return NextResponse.json(aspects);
 }
 
@@ -49,13 +56,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const id = generateId("asp");
-    db.prepare(`
-      INSERT INTO progress_aspects (id, jenjang, level, category, aspect_name, description, order_index)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+    await db.prepare(`
+      INSERT INTO progress_aspects (id, jenjang, level, kelas, category, aspect_name, description, order_index)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       data.jenjang,
       data.level || null,
+      data.kelas || null,
       data.category,
       data.aspectName,
       data.description || null,

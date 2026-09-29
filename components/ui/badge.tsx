@@ -19,6 +19,8 @@ const badgeVariants = cva(
           "bg-warning/15 text-warning-foreground border-warning/30",
         success:
           "bg-success/15 text-success border-success/30",
+        info:
+          "bg-info/15 text-info-foreground border-info/30",
         ghost:
           "bg-muted text-muted-foreground",
       },

@@ -20,7 +20,7 @@ import {
 import { RowActionMenu } from "@/components/row-action-menu";
 import { toast } from "sonner";
 
-type TabKey = "classes" | "halaqahs" | "subjects" | "academic-years" | "progress-aspects";
+type TabKey = "classes" | "halaqahs" | "kelas" | "subjects" | "academic-years" | "progress-aspects";
 
 interface MasterItem {
   id: string;
@@ -34,12 +34,15 @@ interface MasterItem {
   is_active?: number;
   student_count?: number;
   jenjang_name?: string | null;
+  level_name?: string | null;
+  level_id?: string | null;
 }
 
 interface ProgressAspectItem {
   id: string;
   jenjang: string;
   level?: string | null;
+  kelas?: string | null;
   category: string;
   aspect_name: string;
   description?: string | null;
@@ -49,6 +52,7 @@ interface ProgressAspectItem {
 const TABS: { key: TabKey; label: string; entity: string; singular: string }[] = [
   { key: "classes", label: "Jenjang", entity: "classes", singular: "Jenjang" },
   { key: "halaqahs", label: "Level", entity: "halaqahs", singular: "Level" },
+  { key: "kelas", label: "Kelas", entity: "kelas", singular: "Kelas" },
   { key: "progress-aspects", label: "Aspek Perkembangan", entity: "progress-aspects", singular: "Aspek Perkembangan" },
   { key: "subjects", label: "Mata Pelajaran", entity: "subjects", singular: "Mata Pelajaran" },
   { key: "academic-years", label: "Tahun Ajaran", entity: "academic-years", singular: "Tahun Ajaran" },
@@ -65,12 +69,14 @@ export default function AdminMasterPage() {
   const [items, setItems] = useState<{
     classes: MasterItem[];
     halaqahs: MasterItem[];
+    kelas: MasterItem[];
     subjects: MasterItem[];
     "academic-years": MasterItem[];
     "progress-aspects": ProgressAspectItem[];
   }>({
     classes: [],
     halaqahs: [],
+    kelas: [],
     subjects: [],
     "academic-years": [],
     "progress-aspects": [],
@@ -92,6 +98,7 @@ export default function AdminMasterPage() {
     startDate: "",
     endDate: "",
     jenjangName: "Kuttab Awal",
+    levelId: "",
   });
 
   // Dialog and filter state for Progress Aspects
@@ -99,9 +106,11 @@ export default function AdminMasterPage() {
   const [editingAspect, setEditingAspect] = useState<ProgressAspectItem | null>(null);
   const [aspectFilterJenjang, setAspectFilterJenjang] = useState<string>("all");
   const [aspectFilterLevel, setAspectFilterLevel] = useState<string>("all");
+  const [aspectFilterKelas, setAspectFilterKelas] = useState<string>("all");
   const [aspectForm, setAspectForm] = useState({
     jenjang: "Kuttab Awal",
     level: "Kuttab Awal 1",
+    kelas: "Semua",
     category: "Numerasi",
     aspectName: "",
     description: "",
@@ -111,9 +120,10 @@ export default function AdminMasterPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [resClasses, resHalaqahs, resSubjects, resAcademicYears, resAspects] = await Promise.all([
+      const [resClasses, resHalaqahs, resKelas, resSubjects, resAcademicYears, resAspects] = await Promise.all([
         fetch("/api/master/classes").then((r) => (r.ok ? r.json() : [])),
         fetch("/api/master/halaqahs").then((r) => (r.ok ? r.json() : [])),
+        fetch("/api/master/kelas").then((r) => (r.ok ? r.json() : [])),
         fetch("/api/master/subjects").then((r) => (r.ok ? r.json() : [])),
         fetch("/api/master/academic-years").then((r) => (r.ok ? r.json() : [])),
         fetch("/api/master/progress-aspects").then((r) => (r.ok ? r.json() : [])),
@@ -122,6 +132,7 @@ export default function AdminMasterPage() {
       setItems({
         classes: resClasses,
         halaqahs: resHalaqahs,
+        kelas: resKelas,
         subjects: resSubjects,
         "academic-years": resAcademicYears,
         "progress-aspects": resAspects,
@@ -145,6 +156,7 @@ export default function AdminMasterPage() {
       setAspectForm({
         jenjang: aspectFilterJenjang !== "all" ? aspectFilterJenjang : "Kuttab Awal",
         level: aspectFilterLevel !== "all" ? aspectFilterLevel : "Kuttab Awal 1",
+        kelas: aspectFilterKelas !== "all" ? aspectFilterKelas : "Semua",
         category: "Numerasi",
         aspectName: "",
         description: "",
@@ -164,6 +176,7 @@ export default function AdminMasterPage() {
       startDate: "",
       endDate: "",
       jenjangName: "Kuttab Awal",
+      levelId: "",
     });
     setDialogOpen(true);
   };
@@ -179,6 +192,7 @@ export default function AdminMasterPage() {
       startDate: item.start_date ?? "",
       endDate: item.end_date ?? "",
       jenjangName: item.jenjang_name ?? "Kuttab Awal",
+      levelId: item.level_id ?? "",
     });
     setDialogOpen(true);
   };
@@ -188,6 +202,7 @@ export default function AdminMasterPage() {
     setAspectForm({
       jenjang: aspect.jenjang,
       level: aspect.level ?? "Semua",
+      kelas: aspect.kelas ?? "Semua",
       category: aspect.category,
       aspectName: aspect.aspect_name,
       description: aspect.description ?? "",
@@ -211,6 +226,21 @@ export default function AdminMasterPage() {
           ...payload,
           pembina: form.pembina.trim() || null,
           jenjang_name: form.jenjangName,
+        };
+      }
+      if (activeTab === "kelas") {
+        const level = items.halaqahs.find((h) => h.id === form.levelId);
+        if (!level) {
+          toast.error("Level induk wajib dipilih");
+          setSaving(false);
+          return;
+        }
+        payload = {
+          ...payload,
+          capacity: Number(form.capacity) || 30,
+          jenjang_name: level.jenjang_name ?? form.jenjangName,
+          level_id: level.id,
+          level_name: level.name,
         };
       }
       if (activeTab === "subjects") payload = { ...payload, description: form.description.trim() };
@@ -261,6 +291,7 @@ export default function AdminMasterPage() {
       const payload = {
         jenjang: aspectForm.jenjang,
         level: aspectForm.level === "Semua" ? null : aspectForm.level,
+        kelas: aspectForm.kelas === "Semua" ? null : aspectForm.kelas,
         category: aspectForm.category.trim(),
         aspectName: aspectForm.aspectName.trim(),
         description: aspectForm.description.trim() || null,
@@ -314,9 +345,10 @@ export default function AdminMasterPage() {
     return items["progress-aspects"].filter((asp) => {
       if (aspectFilterJenjang !== "all" && asp.jenjang !== aspectFilterJenjang) return false;
       if (aspectFilterLevel !== "all" && asp.level !== aspectFilterLevel) return false;
+      if (aspectFilterKelas !== "all" && asp.kelas !== aspectFilterKelas) return false;
       return true;
     });
-  }, [items, aspectFilterJenjang, aspectFilterLevel]);
+  }, [items, aspectFilterJenjang, aspectFilterLevel, aspectFilterKelas]);
 
   // Grouped aspects by Category
   const groupedAspects = useMemo(() => {
@@ -335,7 +367,7 @@ export default function AdminMasterPage() {
         <div>
           <h1 className="font-heading text-3xl font-bold text-secondary">Data Master</h1>
           <p className="text-muted-foreground mt-1">
-            Kelola data master Jenjang, Level, Aspek Perkembangan, Mapel, dan Tahun Ajaran
+            Kelola data master Jenjang, Level, Kelas, Aspek Perkembangan, Mapel, dan Tahun Ajaran
           </p>
         </div>
       </div>
@@ -395,6 +427,7 @@ export default function AdminMasterPage() {
                     onValueChange={(v) => {
                       setAspectFilterJenjang(v);
                       setAspectFilterLevel("all");
+                      setAspectFilterKelas("all");
                     }}
                   >
                     <SelectTrigger className="h-8 text-xs">
@@ -412,7 +445,10 @@ export default function AdminMasterPage() {
                 <div className="w-48">
                   <Select
                     value={aspectFilterLevel}
-                    onValueChange={setAspectFilterLevel}
+                    onValueChange={(v) => {
+                      setAspectFilterLevel(v);
+                      setAspectFilterKelas("all");
+                    }}
                   >
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue placeholder="Semua Level" />
@@ -420,16 +456,33 @@ export default function AdminMasterPage() {
                     <SelectContent>
                       <SelectItem value="all">Semua Level</SelectItem>
                       {aspectFilterJenjang === "all" ? (
-                        Object.entries(LEVEL_OPTIONS_MAP).flatMap(([jenjang, levels]) =>
-                          levels.map((lvl) => (
-                            <SelectItem key={lvl} value={lvl}>{lvl}</SelectItem>
-                          ))
-                        )
-                      ) : (
-                        (LEVEL_OPTIONS_MAP[aspectFilterJenjang] || []).map((lvl) => (
-                          <SelectItem key={lvl} value={lvl}>{lvl}</SelectItem>
+                        items.halaqahs.map((h) => (
+                          <SelectItem key={h.name} value={h.name}>{h.name}</SelectItem>
                         ))
+                      ) : (
+                        items.halaqahs
+                          .filter((h) => h.jenjang_name === aspectFilterJenjang)
+                          .map((h) => <SelectItem key={h.name} value={h.name}>{h.name}</SelectItem>)
                       )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="w-48">
+                  <Select
+                    value={aspectFilterKelas}
+                    onValueChange={setAspectFilterKelas}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Semua Kelas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Kelas</SelectItem>
+                      {items.kelas
+                        .filter((k) => aspectFilterLevel === "all" || k.level_name === aspectFilterLevel)
+                        .map((k) => (
+                          <SelectItem key={k.name} value={k.name}>{k.name}</SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -480,6 +533,15 @@ export default function AdminMasterPage() {
                               ) : (
                                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                                   Semua Level
+                                </Badge>
+                              )}
+                              {asp.kelas ? (
+                                <Badge variant="info" className="text-[10px] px-1.5 py-0">
+                                  {asp.kelas}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  Semua Kelas
                                 </Badge>
                               )}
                               <span className="text-[10px] text-muted-foreground font-mono">
@@ -542,6 +604,7 @@ export default function AdminMasterPage() {
               <Label htmlFor="name">
                 {activeTab === "classes" && "Nama Jenjang"}
                 {activeTab === "halaqahs" && "Nama Level"}
+                {activeTab === "kelas" && "Nama Kelas"}
                 {activeTab === "academic-years" && "Tahun Ajaran"}
                 {activeTab === "subjects" && "Nama Mata Pelajaran"}{" "}
                 <span className="text-destructive">*</span>
@@ -555,6 +618,8 @@ export default function AdminMasterPage() {
                     ? "Contoh: Kuttab Awal atau Qonuni"
                     : activeTab === "halaqahs"
                     ? "Contoh: Kuttab Awal 1 atau Qonuni 1"
+                    : activeTab === "kelas"
+                    ? "Contoh: Kelas A atau Kelas B"
                     : `Nama ${currentTabConfig.singular.toLowerCase()}`
                 }
                 autoFocus
@@ -602,6 +667,61 @@ export default function AdminMasterPage() {
                     value={form.pembina}
                     onChange={(e) => setForm({ ...form, pembina: e.target.value })}
                     placeholder="Nama ustadz pembina (opsional)"
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Kelas Configuration — anak dari Level */}
+            {activeTab === "kelas" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="levelId">
+                    Level Induk <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={form.levelId}
+                    onValueChange={(v) => {
+                      const level = items.halaqahs.find((h) => h.id === v);
+                      setForm({
+                        ...form,
+                        levelId: v,
+                        jenjangName: level?.jenjang_name ?? form.jenjangName,
+                      });
+                    }}
+                  >
+                    <SelectTrigger id="levelId">
+                      <SelectValue placeholder="Pilih Level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {items.halaqahs.length === 0 ? (
+                        <SelectItem value="__empty" disabled>
+                          Belum ada level
+                        </SelectItem>
+                      ) : (
+                        items.halaqahs.map((h) => (
+                          <SelectItem key={h.id} value={h.id}>
+                            {h.name}
+                            {h.jenjang_name ? ` — ${h.jenjang_name}` : ""}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    Jenjang assigned otomatis dari level induk:{" "}
+                    <span className="font-medium text-foreground">{form.jenjangName}</span>
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="kelasCapacity">Kapasitas Santri</Label>
+                  <Input
+                    id="kelasCapacity"
+                    type="number"
+                    min={1}
+                    value={form.capacity}
+                    onChange={(e) => setForm({ ...form, capacity: e.target.value })}
                   />
                 </div>
               </>
@@ -681,12 +801,12 @@ export default function AdminMasterPage() {
               {editingAspect ? "Edit" : "Tambah"} Aspek Perkembangan
             </DialogTitle>
             <DialogDescription>
-              Tentukan indikator penilaian perkembangan yang akan diisi oleh Guru sesuai Jenjang dan Level santri.
+              Tentukan indikator penilaian perkembangan yang akan diisi oleh Guru sesuai Jenjang, Level, dan Kelas santri.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
                 <Label>Jenjang <span className="text-destructive">*</span></Label>
                 <Select
@@ -695,7 +815,8 @@ export default function AdminMasterPage() {
                     setAspectForm({
                       ...aspectForm,
                       jenjang: v,
-                      level: LEVEL_OPTIONS_MAP[v]?.[0] || "Semua",
+                      level: items.halaqahs.find((h) => h.jenjang_name === v)?.name ?? "Semua",
+                      kelas: "Semua",
                     });
                   }}
                 >
@@ -713,14 +834,37 @@ export default function AdminMasterPage() {
                 <Label>Level Spesifik</Label>
                 <Select
                   value={aspectForm.level}
-                  onValueChange={(v) => setAspectForm({ ...aspectForm, level: v })}
+                  onValueChange={(v) => {
+                    setAspectForm({ ...aspectForm, level: v, kelas: "Semua" });
+                  }}
                 >
                   <SelectTrigger><SelectValue placeholder="Pilih Level" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Semua">Semua Level</SelectItem>
-                    {(LEVEL_OPTIONS_MAP[aspectForm.jenjang] || Object.values(LEVEL_OPTIONS_MAP).flat()).map((lvl) => (
-                      <SelectItem key={lvl} value={lvl}>{lvl}</SelectItem>
+                    {(aspectForm.jenjang === "Semua"
+                      ? items.halaqahs
+                      : items.halaqahs.filter((h) => h.jenjang_name === aspectForm.jenjang)
+                    ).map((h) => (
+                      <SelectItem key={h.id} value={h.name}>{h.name}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Kelas Spesifik</Label>
+                <Select
+                  value={aspectForm.kelas}
+                  onValueChange={(v) => setAspectForm({ ...aspectForm, kelas: v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Pilih Kelas" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Semua">Semua Kelas</SelectItem>
+                    {items.kelas
+                      .filter((k) => aspectForm.level === "Semua" || k.level_name === aspectForm.level)
+                      .map((k) => (
+                        <SelectItem key={k.id} value={k.name}>{k.name}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -829,12 +973,27 @@ function MasterCard({
                       Jenjang: {item.jenjang_name}
                     </Badge>
                   )}
+                  {config.key === "kelas" && (
+                    <>
+                      {item.jenjang_name && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          Jenjang: {item.jenjang_name}
+                        </Badge>
+                      )}
+                      {item.level_name && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          Level: {item.level_name}
+                        </Badge>
+                      )}
+                    </>
+                  )}
                   {item.is_active ? <Badge variant="default" className="text-[10px]">Aktif</Badge> : null}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {config.key === "classes" && `${item.student_count ?? 0} Santri · Kapasitas ${item.capacity ?? 30}`}
                   {config.key === "halaqahs" &&
                     `${item.student_count ?? 0} Santri${item.pembina ? ` · Pembina: ${item.pembina}` : ""}`}
+                  {config.key === "kelas" && `${item.student_count ?? 0} Santri · Kapasitas ${item.capacity ?? 30}`}
                   {config.key === "subjects" && (item.description || "Tanpa deskripsi")}
                   {config.key === "academic-years" &&
                     `Semester ${item.semester ?? "-"}${

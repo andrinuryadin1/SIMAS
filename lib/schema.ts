@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS students (
   class_name TEXT NOT NULL,
   halaqah_id TEXT,
   halaqah_name TEXT,
+  kelas_id TEXT,
+  kelas_name TEXT,
   academic_year_id TEXT,
   enrollment_date TEXT,
   father_name TEXT,
@@ -57,6 +59,16 @@ CREATE TABLE IF NOT EXISTS halaqahs (
   name TEXT NOT NULL,
   pembina TEXT,
   jenjang_name TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS kelas (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  level_id TEXT,
+  level_name TEXT,
+  jenjang_name TEXT,
+  capacity INTEGER DEFAULT 30,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -219,6 +231,7 @@ CREATE TABLE IF NOT EXISTS progress_aspects (
   id TEXT PRIMARY KEY,
   jenjang TEXT NOT NULL,
   level TEXT,
+  kelas TEXT,
   category TEXT NOT NULL,
   aspect_name TEXT NOT NULL,
   description TEXT,
@@ -233,6 +246,7 @@ CREATE INDEX IF NOT EXISTS idx_memorization_student ON memorization(student_id);
 CREATE INDEX IF NOT EXISTS idx_behaviors_student ON behaviors(student_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_progress_aspects_jenjang ON progress_aspects(jenjang);
+CREATE INDEX IF NOT EXISTS idx_progress_aspects_kelas ON progress_aspects(kelas);
 `;
 
 /**

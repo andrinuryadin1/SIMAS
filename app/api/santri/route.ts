@@ -12,8 +12,11 @@ const CreateStudentSchema = z.object({
   birth_place: z.string().min(1, "Tempat lahir wajib diisi").max(100),
   address: z.string().max(500).optional(),
   class_id: z.string().optional(),
-  class_name: z.string().min(1, "Nama kelas wajib diisi"),
+  class_name: z.string().min(1, "Nama jenjang wajib diisi"),
   halaqah_id: z.string().optional(),
+  halaqah_name: z.string().optional(),
+  kelas_id: z.string().optional(),
+  kelas_name: z.string().optional(),
   academic_year_id: z.string().optional(),
   enrollment_date: z.string().optional(),
   father_name: z.string().max(100).optional(),
@@ -36,6 +39,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const classId = searchParams.get("classId");
   const halaqahId = searchParams.get("halaqahId");
+  const kelasId = searchParams.get("kelasId");
   const status = searchParams.get("status");
   const search = searchParams.get("search");
 
@@ -49,6 +53,10 @@ export async function GET(request: NextRequest) {
   if (halaqahId) {
     query += " AND halaqah_id = ?";
     params.push(halaqahId);
+  }
+  if (kelasId) {
+    query += " AND kelas_id = ?";
+    params.push(kelasId);
   }
   if (status) {
     query += " AND status = ?";
@@ -84,16 +92,33 @@ export async function POST(request: NextRequest) {
 
   try {
     const id = generateId("student");
+
+    // Nama jenjang, level, dan kelas ikut disimpan sebagai kolom denormalisasi
+    // supaya tabel & laporan tidak perlu JOIN ke master data.
+    const jenjang = data.class_id
+      ? await db.prepare("SELECT name FROM classes WHERE id = ?").get<{ name: string }>(data.class_id)
+      : undefined;
+    const level = data.halaqah_id
+      ? await db.prepare("SELECT name FROM halaqahs WHERE id = ?").get<{ name: string }>(data.halaqah_id)
+      : undefined;
+    const kelas = data.kelas_id
+      ? await db.prepare("SELECT name FROM kelas WHERE id = ?").get<{ name: string }>(data.kelas_id)
+      : undefined;
+
     await db.prepare(`
       INSERT INTO students (
         id, nis, full_name, gender, birth_date, birth_place, address,
-        class_id, class_name, halaqah_id, academic_year_id, enrollment_date,
+        class_id, class_name, halaqah_id, halaqah_name, kelas_id, kelas_name,
+        academic_year_id, enrollment_date,
         father_name, mother_name, guardian_name, guardian_phone, photo_url, status, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aktif', ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aktif', ?)
     `).run(
       id, data.nis, data.full_name, data.gender, data.birth_date, data.birth_place,
-      data.address ?? null, data.class_id ?? null, data.class_name,
-      data.halaqah_id ?? null, data.academic_year_id ?? null, data.enrollment_date ?? null,
+      data.address ?? null,
+      data.class_id ?? null, jenjang?.name ?? data.class_name,
+      data.halaqah_id ?? null, level?.name ?? data.halaqah_name ?? null,
+      data.kelas_id ?? null, kelas?.name ?? data.kelas_name ?? null,
+      data.academic_year_id ?? null, data.enrollment_date ?? null,
       data.father_name ?? null, data.mother_name ?? null, data.guardian_name ?? null,
       data.guardian_phone || null, data.photo_url || null, data.notes ?? null
     );

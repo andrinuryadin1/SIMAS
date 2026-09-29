@@ -26,23 +26,41 @@ export async function seedDatabase() {
 
   // Seed Jenjang (classes)
   const insertClass = db.prepare("INSERT OR IGNORE INTO classes (id, name, capacity) VALUES (?, ?, ?)");
-  insertClass.run("class-ka", "Kuttab Awal", 30);
-  insertClass.run("class-qo", "Qonuni", 30);
+  await insertClass.run("class-ka", "Kuttab Awal", 30);
+  await insertClass.run("class-qo", "Qonuni", 30);
 
   // Seed Level (halaqahs)
   const insertHalaqah = db.prepare("INSERT OR IGNORE INTO halaqahs (id, name, pembina, jenjang_name) VALUES (?, ?, ?, ?)");
-  insertHalaqah.run("level-ka-1", "Kuttab Awal 1", "Ustadz Rizki Firmansyah", "Kuttab Awal");
-  insertHalaqah.run("level-ka-2", "Kuttab Awal 2", "Ustadzah Sari Amelia", "Kuttab Awal");
-  insertHalaqah.run("level-ka-3", "Kuttab Awal 3", "Ustadz Hilmi Rahman", "Kuttab Awal");
-  insertHalaqah.run("level-qo-1", "Qonuni 1", "Ustadz Rizki Firmansyah", "Qonuni");
-  insertHalaqah.run("level-qo-2", "Qonuni 2", "Ustadzah Sari Amelia", "Qonuni");
-  insertHalaqah.run("level-qo-3", "Qonuni 3", "Ustadz Hilmi Rahman", "Qonuni");
-  insertHalaqah.run("level-qo-4", "Qonuni 4", null, "Qonuni");
+  await insertHalaqah.run("level-ka-1", "Kuttab Awal 1", "Ustadz Rizki Firmansyah", "Kuttab Awal");
+  await insertHalaqah.run("level-ka-2", "Kuttab Awal 2", "Ustadzah Sari Amelia", "Kuttab Awal");
+  await insertHalaqah.run("level-ka-3", "Kuttab Awal 3", "Ustadz Hilmi Rahman", "Kuttab Awal");
+  await insertHalaqah.run("level-qo-1", "Qonuni 1", "Ustadz Rizki Firmansyah", "Qonuni");
+  await insertHalaqah.run("level-qo-2", "Qonuni 2", "Ustadzah Sari Amelia", "Qonuni");
+  await insertHalaqah.run("level-qo-3", "Qonuni 3", "Ustadz Hilmi Rahman", "Qonuni");
+  await insertHalaqah.run("level-qo-4", "Qonuni 4", null, "Qonuni");
+
+  // Seed Kelas (classes under each Level)
+  const insertKelas = db.prepare(
+    "INSERT OR IGNORE INTO kelas (id, name, level_id, level_name, jenjang_name, capacity) VALUES (?, ?, ?, ?, ?, ?)"
+  );
+  // Kuttab Awal classes
+  await insertKelas.run("kelas-ka-1-a", "Kuttab Awal 1-A", "level-ka-1", "Kuttab Awal 1", "Kuttab Awal", 25);
+  await insertKelas.run("kelas-ka-1-b", "Kuttab Awal 1-B", "level-ka-1", "Kuttab Awal 1", "Kuttab Awal", 25);
+  await insertKelas.run("kelas-ka-2-a", "Kuttab Awal 2-A", "level-ka-2", "Kuttab Awal 2", "Kuttab Awal", 25);
+  await insertKelas.run("kelas-ka-2-b", "Kuttab Awal 2-B", "level-ka-2", "Kuttab Awal 2", "Kuttab Awal", 25);
+  await insertKelas.run("kelas-ka-3-a", "Kuttab Awal 3-A", "level-ka-3", "Kuttab Awal 3", "Kuttab Awal", 25);
+  // Qonuni classes
+  await insertKelas.run("kelas-qo-1-a", "Qonuni 1-A", "level-qo-1", "Qonuni 1", "Qonuni", 25);
+  await insertKelas.run("kelas-qo-1-b", "Qonuni 1-B", "level-qo-1", "Qonuni 1", "Qonuni", 25);
+  await insertKelas.run("kelas-qo-2-a", "Qonuni 2-A", "level-qo-2", "Qonuni 2", "Qonuni", 25);
+  await insertKelas.run("kelas-qo-2-b", "Qonuni 2-B", "level-qo-2", "Qonuni 2", "Qonuni", 25);
+  await insertKelas.run("kelas-qo-3-a", "Qonuni 3-A", "level-qo-3", "Qonuni 3", "Qonuni", 25);
+  await insertKelas.run("kelas-qo-4-a", "Qonuni 4-A", "level-qo-4", "Qonuni 4", "Qonuni", 25);
 
   // Seed academic years
   const insertAY = db.prepare("INSERT OR IGNORE INTO academic_years (id, name, semester, is_active) VALUES (?, ?, ?, ?)");
-  insertAY.run("ay-001", "2024/2025", "ganjil", 0);
-  insertAY.run("ay-002", "2025/2026", "ganjil", 1);
+  await insertAY.run("ay-001", "2024/2025", "ganjil", 0);
+  await insertAY.run("ay-002", "2025/2026", "ganjil", 1);
 
   // Seed users
   const insertUser = db.prepare(`
@@ -50,8 +68,8 @@ export async function seedDatabase() {
     VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
   `);
   const hashedPassword = bcrypt.hashSync("password123", 10);
-  mockUsers.forEach((user) => {
-    insertUser.run(
+  for (const user of mockUsers) {
+    await insertUser.run(
       user.id,
       user.email,
       hashedPassword,
@@ -60,7 +78,7 @@ export async function seedDatabase() {
       user.phone || null,
       user.avatarUrl || null
     );
-  });
+  }
   console.log(`  ✓ ${mockUsers.length} users`);
 
   // Seed students
@@ -71,13 +89,13 @@ export async function seedDatabase() {
       father_name, mother_name, guardian_name, guardian_phone, photo_url, status, notes
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  mockStudents.forEach((s) => {
-    insertStudent.run(
+  for (const s of mockStudents) {
+    await insertStudent.run(
       s.id, s.nis, s.fullName, s.gender, s.birthDate, s.birthPlace, s.address,
       s.classId, s.className, s.halaqahId, s.academicYearId, s.enrollmentDate,
       s.fatherName, s.motherName, s.guardianName, s.guardianPhone, s.photoUrl, s.status, s.notes
     );
-  });
+  }
   console.log(`  ✓ ${mockStudents.length} students`);
 
   // Get a guru user ID for foreign keys
@@ -89,12 +107,12 @@ export async function seedDatabase() {
     INSERT OR IGNORE INTO attendance (id, student_id, user_id, date, status, halaqah_id)
     VALUES (?, ?, ?, ?, ?, ?)
   `);
-  mockAttendance.forEach((a) => {
-    insertAttendance.run(
+  for (const a of mockAttendance) {
+    await await insertAttendance.run(
       a.id, a.studentId, defaultGuruId, toDateString(a.date),
       a.status, a.halaqahId
     );
-  });
+  }
   console.log(`  ✓ ${mockAttendance.length} attendance records`);
 
   // Seed memorization
@@ -102,12 +120,12 @@ export async function seedDatabase() {
     INSERT OR IGNORE INTO memorization (id, student_id, user_id, type, surah_name, surah_number, ayah_start, ayah_end, juz, quality, note, date)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  mockQuranMemorization.forEach((m) => {
-    insertMem.run(
+  for (const m of mockQuranMemorization) {
+    await insertMem.run(
       m.id, m.studentId, defaultGuruId, m.type, m.surahName, m.surahNumber,
       m.ayahStart, m.ayahEnd, m.juz, m.quality, m.note, toDateString(m.date)
     );
-  });
+  }
   console.log(`  ✓ ${mockQuranMemorization.length} memorization records`);
 
   // Seed behaviors
@@ -115,8 +133,8 @@ export async function seedDatabase() {
     INSERT OR IGNORE INTO behaviors (id, student_id, user_id, type, category, severity, description, date)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  mockBehaviors.forEach((b) => {
-    insertBehavior.run(
+  for (const b of mockBehaviors) {
+    await insertBehavior.run(
       b.id,
       b.studentId,
       defaultGuruId,
@@ -126,7 +144,7 @@ export async function seedDatabase() {
       b.description || null,
       toDateString(b.date)
     );
-  });
+  }
   console.log(`  ✓ ${mockBehaviors.length} behavior records`);
 
   // Seed special cases
@@ -134,11 +152,11 @@ export async function seedDatabase() {
     INSERT OR IGNORE INTO special_cases (id, student_id, reporter_id, title, description, category, status)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
-  mockSpecialCases.forEach((c) => {
-    insertCase.run(
+  for (const c of mockSpecialCases) {
+    await insertCase.run(
       c.id, c.studentId, defaultGuruId, c.title, c.description, c.category, c.status
     );
-  });
+  }
   console.log(`  ✓ ${mockSpecialCases.length} special cases`);
 
   // Seed notifications
@@ -146,24 +164,24 @@ export async function seedDatabase() {
     INSERT OR IGNORE INTO notifications (id, user_id, type, title, message, link_url, is_read)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
-  mockNotifications.forEach((n) => {
-    insertNotif.run(n.id, n.userId, n.type, n.title, n.message, n.linkUrl, n.isRead ? 1 : 0);
-  });
+  for (const n of mockNotifications) {
+    await insertNotif.run(n.id, n.userId, n.type, n.title, n.message, n.linkUrl, n.isRead ? 1 : 0);
+  }
   console.log(`  ✓ ${mockNotifications.length} notifications`);
 
   // Seed reminder settings
-  db.prepare(`
+  await db.prepare(`
     INSERT OR IGNORE INTO reminder_settings (id, day_of_week, time, timezone, message, is_active)
     VALUES (?, ?, ?, ?, ?, 1)
   `).run("reminder-001", "thursday", "14:00", "Asia/Jakarta", "Mohon lengkapi input perkembangan santri pekan ini.");
 
   // Seed subjects
   const insertSubject = db.prepare("INSERT OR IGNORE INTO subjects (id, name) VALUES (?, ?)");
-  insertSubject.run("subject-001", "Tahfidz Qur'an");
-  insertSubject.run("subject-002", "Adab & Akhlak");
-  insertSubject.run("subject-003", "Berhitung");
-  insertSubject.run("subject-004", "Calistung");
-  insertSubject.run("subject-005", "Fiqih Ibadah");
+  await insertSubject.run("subject-001", "Tahfidz Qur'an");
+  await insertSubject.run("subject-002", "Adab & Akhlak");
+  await insertSubject.run("subject-003", "Berhitung");
+  await insertSubject.run("subject-004", "Calistung");
+  await insertSubject.run("subject-005", "Fiqih Ibadah");
 
   console.log("Database seeded successfully!");
 }

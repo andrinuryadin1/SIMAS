@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
 import { Plus, Edit, Trash2, Eye, Power, Upload } from "lucide-react";
-import { getStudents, getClassOptions, getHalaqahOptions } from "@/lib/queries";
+import { getStudents, getClassOptions, getHalaqahOptions, getKelasOptions } from "@/lib/queries";
 import { DataToolbar } from "@/components/data-toolbar";
 import { RowActionMenu } from "@/components/row-action-menu";
 import { AdminSantriActions } from "@/components/admin/santri-actions";
@@ -16,18 +16,28 @@ function StatusBadge({ status }: { status: string }) {
 
 async function SantriTable({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const params = await searchParams;
-  const students = (await getStudents({
-    classId: params.classId as string,
-    halaqahId: params.halaqahId as string,
-  })).filter((s) => {
+
+  const [rawStudents, rawClasses, rawHalaqahs, rawKelas] = await Promise.all([
+    getStudents({
+      classId: params.classId as string,
+      halaqahId: params.halaqahId as string,
+      kelasId: params.kelasId as string,
+    }),
+    getClassOptions(),
+    getHalaqahOptions(),
+    getKelasOptions(),
+  ]);
+
+  const students = rawStudents.filter((s) => {
     const search = (params.search as string)?.toLowerCase() ?? "";
     if (search && !s.full_name.toLowerCase().includes(search) && !s.nis.includes(search)) return false;
     if (params.status && s.status !== params.status) return false;
     return true;
   });
 
-  const classOptions = (await getClassOptions()).map((c) => ({ value: c.id, label: c.name }));
-  const halaqahOptions = (await getHalaqahOptions()).map((h) => ({ value: h.id, label: h.name }));
+  const classOptions = rawClasses.map((c) => ({ value: c.id, label: c.name }));
+  const halaqahOptions = rawHalaqahs.map((h) => ({ value: h.id, label: h.name }));
+  const kelasOptions = rawKelas.map((k) => ({ value: k.id, label: k.name }));
   const statusOptions = [
     { value: "aktif", label: "Aktif" },
     { value: "nonaktif", label: "Nonaktif" },
@@ -38,7 +48,7 @@ async function SantriTable({ searchParams }: { searchParams: Promise<{ [key: str
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-heading text-3xl font-bold text-secondary">Kelola Santri</h1>
-          <p className="text-muted-foreground mt-1">Kelola data santri, penempatan jenjang dan level</p>
+          <p className="text-muted-foreground mt-1">Kelola data santri, penempatan jenjang, level, dan kelas</p>
         </div>
         <Button asChild>
           <Link href="/admin/santri/tambah">
@@ -66,6 +76,7 @@ async function SantriTable({ searchParams }: { searchParams: Promise<{ [key: str
             filters={[
               { param: "classId", label: "Filter Jenjang", options: classOptions },
               { param: "halaqahId", label: "Filter Level", options: halaqahOptions },
+              { param: "kelasId", label: "Filter Kelas", options: kelasOptions },
               { param: "status", label: "Filter Status", options: statusOptions },
             ]}
           />
@@ -86,6 +97,7 @@ async function SantriTable({ searchParams }: { searchParams: Promise<{ [key: str
                   <TableHead>Nama</TableHead>
                   <TableHead>Jenjang</TableHead>
                   <TableHead>Level</TableHead>
+                  <TableHead>Kelas</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-[100px]">Aksi</TableHead>
                 </TableRow>
@@ -97,6 +109,7 @@ async function SantriTable({ searchParams }: { searchParams: Promise<{ [key: str
                     <TableCell className="font-medium">{student.full_name}</TableCell>
                     <TableCell>{student.class_name}</TableCell>
                     <TableCell>{student.halaqah_name ?? "-"}</TableCell>
+                    <TableCell>{student.kelas_name ?? "-"}</TableCell>
                     <TableCell><StatusBadge status={student.status} /></TableCell>
                     <TableCell>
                       <RowActionMenu
@@ -129,7 +142,7 @@ async function SantriTable({ searchParams }: { searchParams: Promise<{ [key: str
                 ))}
                 {students.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       Tidak ada santri ditemukan
                     </TableCell>
                   </TableRow>

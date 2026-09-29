@@ -17,12 +17,14 @@ interface StudentOption {
   full_name: string;
   class_name: string; // Jenjang
   halaqah_name: string | null; // Level
+  kelas_name: string | null; // Kelas
 }
 
 interface DynamicAspect {
   id: string;
   jenjang: string;
   level: string | null;
+  kelas: string | null;
   category: string;
   aspect_name: string;
   description: string | null;
@@ -90,15 +92,27 @@ export default function GuruPerkembanganPage() {
   const loadAspectsAndHistory = useCallback(async (student: StudentOption, period: string) => {
     setLoadingAspects(true);
     try {
-      // 1. Fetch dynamic aspects tailored for this student's Jenjang & Level
+      // 1. Fetch dynamic aspects tailored for this student's Jenjang & Level & Kelas
       const params = new URLSearchParams();
       if (student.class_name) params.set("jenjang", student.class_name);
       if (student.halaqah_name) params.set("level", student.halaqah_name);
+      if (student.kelas_name) params.set("kelas", student.kelas_name);
 
       let resAspects = await fetch(`/api/master/progress-aspects?${params.toString()}`);
       let aspectsData: DynamicAspect[] = resAspects.ok ? await resAspects.json() : [];
 
-      // Fallback: If no aspects found for specific level, fetch by jenjang
+      // Fallback: If no aspects found for specific level+kelas, fetch by jenjang+level
+      if (aspectsData.length === 0 && student.class_name && student.halaqah_name) {
+        const fallbackParams = new URLSearchParams();
+        fallbackParams.set("jenjang", student.class_name);
+        fallbackParams.set("level", student.halaqah_name);
+        const fallbackRes = await fetch(`/api/master/progress-aspects?${fallbackParams.toString()}`);
+        if (fallbackRes.ok) {
+          aspectsData = await fallbackRes.json();
+        }
+      }
+
+      // Fallback: If still empty, fetch by jenjang only
       if (aspectsData.length === 0 && student.class_name) {
         const fallbackRes = await fetch(`/api/master/progress-aspects?jenjang=${encodeURIComponent(student.class_name)}`);
         if (fallbackRes.ok) {
@@ -199,11 +213,11 @@ export default function GuruPerkembanganPage() {
 
     setSaving(true);
     try {
-      let savedCount = 0;
+      const entries = [];
       for (const aspect of aspects) {
         const rating = form.ratings[aspect.aspect_name];
         if (rating) {
-          const entry = {
+          entries.push({
             studentId: form.studentId,
             subjectCategory: aspect.category,
             aspectName: aspect.aspect_name,
@@ -211,23 +225,22 @@ export default function GuruPerkembanganPage() {
             level: rating,
             note: form.notes[aspect.aspect_name] || null,
             recordedAt: form.recordedAt,
-          };
-
-          const res = await fetch("/api/progress", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(entry),
           });
-
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.error ?? `Gagal menyimpan aspek ${aspect.aspect_name}`);
-          }
-          savedCount++;
         }
       }
 
-      toast.success(`Berhasil menyimpan perkembangan santri (${savedCount} aspek tersimpan)`);
+      const res = await fetch("/api/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ records: entries }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Gagal menyimpan perkembangan");
+      }
+
+      toast.success(`Berhasil menyimpan perkembangan santri (${entries.length} aspek tersimpan)`);
       if (selectedStudent) {
         void loadAspectsAndHistory(selectedStudent, form.period);
       }
@@ -323,6 +336,11 @@ export default function GuruPerkembanganPage() {
                 {selectedStudent.halaqah_name && (
                   <Badge variant="secondary" className="text-xs">
                     Level: {selectedStudent.halaqah_name}
+                  </Badge>
+                )}
+                {selectedStudent.kelas_name && (
+                  <Badge variant="info" className="text-xs">
+                    Kelas: {selectedStudent.kelas_name}
                   </Badge>
                 )}
               </div>
