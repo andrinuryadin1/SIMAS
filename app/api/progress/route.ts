@@ -44,44 +44,67 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(await db.prepare(query).all(...params));
 }
 
+const BatchProgressSchema = z.object({
+  records: z.array(ProgressSchema).min(1, "Daftar aspek tidak boleh kosong"),
+});
+
 export async function POST(request: NextRequest) {
   const { session, error: authError } = await getSessionOrError(["guru", "admin"]);
   if (authError) return authError;
 
-  const { data, error: parseError } = await parseBody(request, ProgressSchema);
-  if (parseError) return parseError;
+  const rawBody = await request.json().catch(() => null);
+  if (!rawBody) {
+    return NextResponse.json({ error: "Payload tidak valid" }, { status: 400 });
+  }
 
   const userId = (session!.user as any).id as string;
+  let itemsToSave: z.infer<typeof ProgressSchema>[] = [];
 
-  // ✅ Sanitasi note
-  const cleanNote = sanitizeText(data.note);
+  if (Array.isArray(rawBody)) {
+    const parsed = z.array(ProgressSchema).safeParse(rawBody);
+    if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+    itemsToSave = parsed.data;
+  } else if (rawBody.records && Array.isArray(rawBody.records)) {
+    const parsed = BatchProgressSchema.safeParse(rawBody);
+    if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+    itemsToSave = parsed.data.records;
+  } else {
+    const parsed = ProgressSchema.safeParse(rawBody);
+    if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+    itemsToSave = [parsed.data];
+  }
 
   try {
-    const existing = await db.prepare(
-      "SELECT id FROM progress_records WHERE student_id = ? AND aspect_name = ? AND period = ?"
-    ).get(data.studentId, data.aspectName, data.period) as { id: string } | undefined;
+    let savedCount = 0;
+    for (const item of itemsToSave) {
+      const cleanNote = sanitizeText(item.note);
+      const existing = await db.prepare(
+        "SELECT id FROM progress_records WHERE student_id = ? AND aspect_name = ? AND period = ?"
+      ).get(item.studentId, item.aspectName, item.period) as { id: string } | undefined;
 
-    if (existing) {
-      await db.prepare(`
-        UPDATE progress_records
-        SET user_id = ?, subject_category = ?, level = ?, score = ?, note = ?, recorded_at = ?
-        WHERE id = ?
-      `).run(
-        userId, data.subjectCategory, data.level, data.score ?? null, cleanNote ?? null, data.recordedAt, existing.id
-      );
-      return NextResponse.json({ id: existing.id, message: "Perkembangan berhasil diperbarui" });
-    } else {
-      const id = generateId("prog");
-      await db.prepare(`
-        INSERT INTO progress_records
-          (id, student_id, user_id, subject_category, aspect_name, period, level, score, note, recorded_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        id, data.studentId, userId, data.subjectCategory, data.aspectName,
-        data.period, data.level, data.score ?? null, cleanNote ?? null, data.recordedAt
-      );
-      return NextResponse.json({ id, message: "Perkembangan berhasil disimpan" }, { status: 201 });
+      if (existing) {
+        await db.prepare(`
+          UPDATE progress_records
+          SET user_id = ?, subject_category = ?, level = ?, score = ?, note = ?, recorded_at = ?
+          WHERE id = ?
+        `).run(
+          userId, item.subjectCategory, item.level, item.score ?? null, cleanNote ?? null, item.recordedAt, existing.id
+        );
+      } else {
+        const id = generateId("prog");
+        await db.prepare(`
+          INSERT INTO progress_records
+            (id, student_id, user_id, subject_category, aspect_name, period, level, score, note, recorded_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          id, item.studentId, userId, item.subjectCategory, item.aspectName,
+          item.period, item.level, item.score ?? null, cleanNote ?? null, item.recordedAt
+        );
+      }
+      savedCount++;
     }
+
+    return NextResponse.json({ message: "Perkembangan berhasil disimpan", count: savedCount }, { status: 201 });
   } catch (err) {
     console.error("POST /api/progress error:", err);
     return NextResponse.json({ error: "Gagal menyimpan perkembangan" }, { status: 500 });

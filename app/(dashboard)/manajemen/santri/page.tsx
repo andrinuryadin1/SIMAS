@@ -50,10 +50,15 @@ export default function ManajemenSantriPage() {
       if (halaqahFilter && halaqahFilter !== "all") params.set("halaqahId", halaqahFilter);
       
       const res = await fetch(`/api/santri?${params}`);
-      const data = await res.json();
-      setStudents(data);
+      if (res.ok) {
+        const data = await res.json();
+        setStudents(Array.isArray(data) ? data : []);
+      } else {
+        setStudents([]);
+      }
     } catch (error) {
       console.error("Error fetching students:", error);
+      setStudents([]);
     } finally {
       setLoading(false);
     }

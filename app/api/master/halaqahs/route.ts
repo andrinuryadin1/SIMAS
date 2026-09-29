@@ -3,7 +3,7 @@ import db from "@/lib/db";
 import { auth } from "@/auth";
 
 export async function GET() {
-  const halaqahs = db
+  const halaqahs = await db
     .prepare(
       `SELECT h.*, COUNT(s.id) AS student_count
        FROM halaqahs h
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     const id = `level-${Date.now().toString(36)}`;
-    db.prepare("INSERT INTO halaqahs (id, name, pembina, jenjang_name) VALUES (?, ?, ?, ?)").run(
+    await db.prepare("INSERT INTO halaqahs (id, name, pembina, jenjang_name) VALUES (?, ?, ?, ?)").run(
       id,
       name,
       pembina ?? null,

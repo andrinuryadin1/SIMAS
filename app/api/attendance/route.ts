@@ -97,12 +97,11 @@ export async function POST(request: NextRequest) {
     }
 
     const client = createClient({ url: process.env.TURSO_DATABASE_URL || "file:data/simas.db", authToken: process.env.TURSO_AUTH_TOKEN });
-    let savedCount = 0;
-    for (const rec of recordsToSave) {
+    const statements = recordsToSave.map((rec) => {
       const id = generateId("att");
       const userId = rec.userId || sessionUserId;
       const cleanNotes = sanitizeText(rec.notes);
-      await client.execute({
+      return {
         sql: `INSERT INTO attendance (id, student_id, user_id, date, status, halaqah_id, notes)
               VALUES (?, ?, ?, ?, ?, ?, ?)
               ON CONFLICT(student_id, date) DO UPDATE SET
@@ -110,10 +109,12 @@ export async function POST(request: NextRequest) {
                 user_id = excluded.user_id,
                 halaqah_id = COALESCE(excluded.halaqah_id, attendance.halaqah_id),
                 notes = excluded.notes`,
-        args: [id, rec.studentId, userId, rec.date, rec.status, rec.halaqahId ?? null, cleanNotes ?? null],
-      });
-      savedCount++;
-    }
+        args: [id, rec.studentId, userId, rec.date, rec.status, rec.halaqahId ?? null, cleanNotes ?? null] as InValue[],
+      };
+    });
+
+    await client.batch(statements, "write");
+    const savedCount = statements.length;
 
     return NextResponse.json(
       { message: `Absensi berhasil disimpan (${savedCount} data tercatat)`, count: savedCount },

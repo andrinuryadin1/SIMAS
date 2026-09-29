@@ -49,7 +49,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
       );
     }
 
-    db.prepare("DELETE FROM classes WHERE id = ?").run(id);
+    await db.prepare("DELETE FROM classes WHERE id = ?").run(id);
     return NextResponse.json({ message: "Kelas berhasil dihapus" });
   } catch (error) {
     console.error("DELETE /api/master/classes/[id] error:", error);

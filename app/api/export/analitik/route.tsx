@@ -6,6 +6,8 @@ import { getStats } from "@/lib/queries";
 import type { UserRole } from "@/components/auth-context";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
 
 const styles = StyleSheet.create({
   page: { padding: 30, fontFamily: "Helvetica", fontSize: 9 },

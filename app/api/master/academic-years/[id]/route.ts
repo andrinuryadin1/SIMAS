@@ -17,23 +17,23 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
     if (isActive) {
       // Only one academic year can be active at a time
-      db.prepare("UPDATE academic_years SET is_active = 0 WHERE id != ?").run(id);
+      await db.prepare("UPDATE academic_years SET is_active = 0 WHERE id != ?").run(id);
     }
 
     if (name !== undefined) {
-      db.prepare("UPDATE academic_years SET name = ? WHERE id = ?").run(name, id);
+      await db.prepare("UPDATE academic_years SET name = ? WHERE id = ?").run(name, id);
     }
     if (semester !== undefined) {
-      db.prepare("UPDATE academic_years SET semester = ? WHERE id = ?").run(semester, id);
+      await db.prepare("UPDATE academic_years SET semester = ? WHERE id = ?").run(semester, id);
     }
     if (startDate !== undefined) {
-      db.prepare("UPDATE academic_years SET start_date = ? WHERE id = ?").run(startDate, id);
+      await db.prepare("UPDATE academic_years SET start_date = ? WHERE id = ?").run(startDate, id);
     }
     if (endDate !== undefined) {
-      db.prepare("UPDATE academic_years SET end_date = ? WHERE id = ?").run(endDate, id);
+      await db.prepare("UPDATE academic_years SET end_date = ? WHERE id = ?").run(endDate, id);
     }
     if (isActive !== undefined) {
-      db.prepare("UPDATE academic_years SET is_active = ? WHERE id = ?").run(isActive ? 1 : 0, id);
+      await db.prepare("UPDATE academic_years SET is_active = ? WHERE id = ?").run(isActive ? 1 : 0, id);
     }
 
     return NextResponse.json({ message: "Tahun ajaran berhasil diperbarui" });
@@ -51,7 +51,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     }
 
     const { id } = await params;
-    db.prepare("DELETE FROM academic_years WHERE id = ?").run(id);
+    await db.prepare("DELETE FROM academic_years WHERE id = ?").run(id);
     return NextResponse.json({ message: "Tahun ajaran berhasil dihapus" });
   } catch (error) {
     console.error("DELETE /api/master/academic-years/[id] error:", error);
