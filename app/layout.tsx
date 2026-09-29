@@ -3,7 +3,6 @@ import { Plus_Jakarta_Sans, Inter, JetBrains_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/auth-provider";
 import { Toast } from "@/components/ui/toast";
 import "./globals.css";
-import "@/lib/init-db";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],

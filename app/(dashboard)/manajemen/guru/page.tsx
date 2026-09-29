@@ -6,6 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { getUsers } from "@/lib/queries";
 
+export const dynamic = "force-dynamic";
+
 async function GuruContent() {
   const users = await getUsers({ role: "guru" });
 

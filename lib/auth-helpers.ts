@@ -7,18 +7,28 @@
  *
  * Untuk query database umum, tetap gunakan `lib/db.ts`.
  */
-import { createClient } from "@libsql/client";
+import { createClient, type Client } from "@libsql/client";
 
-const url = process.env.TURSO_DATABASE_URL || "file:data/simas.db";
-const authToken = process.env.TURSO_AUTH_TOKEN;
+// Environment variables are read lazily inside getClient() to avoid DNS lookups
+// during module import (which would happen in the Next.js build phase).
 
-// Lazy singleton — hanya dibuat saat diperlukan
-let _client: ReturnType<typeof createClient> | null = null;
+let _client: Client | null = null;
+let _useFallback = false;
 
-function getClient() {
-  if (!_client) {
+function getClient(): Client {
+  if (_client) return _client;
+
+  const url = process.env.TURSO_DATABASE_URL || "file:data/simas.db";
+  const authToken = process.env.TURSO_AUTH_TOKEN;
+
+  try {
     _client = createClient({ url, authToken });
+  } catch (e) {
+    console.warn("Failed to create Turso client for auth-helpers, falling back to local SQLite:", e);
+    _useFallback = true;
+    _client = createClient({ url: "file:data/simas.db" });
   }
+
   return _client;
 }
 
