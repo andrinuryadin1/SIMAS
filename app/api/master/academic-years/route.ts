@@ -3,7 +3,7 @@ import db from "@/lib/db";
 import { auth } from "@/auth";
 
 export async function GET() {
-  const years = db
+  const years = await db
     .prepare("SELECT * FROM academic_years ORDER BY is_active DESC, name DESC")
     .all();
   return NextResponse.json(years);
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const id = `ta-${Date.now().toString(36)}`;
-    db.prepare(
+    await db.prepare(
       "INSERT INTO academic_years (id, name, semester, start_date, end_date, is_active) VALUES (?, ?, ?, ?, ?, 0)"
     ).run(id, name, semester, startDate ?? null, endDate ?? null);
 

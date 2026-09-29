@@ -47,7 +47,8 @@ export async function GET(request: NextRequest) {
   if (conditions.length > 0) query += " WHERE " + conditions.join(" AND ");
   query += " ORDER BY j.date DESC, j.created_at DESC";
 
-  return NextResponse.json(db.prepare(query).all(...params));
+  const journals = await db.prepare(query).all(...params);
+  return NextResponse.json(journals);
 }
 
 export async function POST(request: NextRequest) {
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const id = generateId("jrn");
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO teaching_journals (id, user_id, halaqah_id, subject, date, topic, method, summary, obstacles, reflection)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(

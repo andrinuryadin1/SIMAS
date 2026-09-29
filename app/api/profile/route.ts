@@ -8,7 +8,7 @@ async function getUser() {
   if (!session?.user) return null;
   const id = (session.user as { id?: string }).id;
   if (!id) return null;
-  return db.prepare("SELECT * FROM users WHERE id = ?").get(id);
+  return await db.prepare("SELECT * FROM users WHERE id = ?").get(id);
 }
 
 export async function GET() {
@@ -73,7 +73,7 @@ export async function PUT(request: NextRequest) {
     sets.push("updated_at = CURRENT_TIMESTAMP");
     values.push((user as any).id);
 
-    db.prepare(`UPDATE users SET ${sets.join(", ")} WHERE id = ?`).run(...values);
+    await db.prepare(`UPDATE users SET ${sets.join(", ")} WHERE id = ?`).run(...values);
 
     return NextResponse.json({ message: "Profil berhasil diperbarui" });
   } catch (error) {

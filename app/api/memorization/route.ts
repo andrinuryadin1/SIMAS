@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
   }
   query += " ORDER BY m.date DESC, m.created_at DESC";
 
-  const memorization = db.prepare(query).all(...params);
+  const memorization = await db.prepare(query).all(...params);
   return NextResponse.json(memorization);
 }
 
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const id = generateId("mem");
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO memorization (id, student_id, user_id, type, surah_name, surah_number, ayah_start, ayah_end, juz, quality, note, date)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(

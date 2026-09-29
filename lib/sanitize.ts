@@ -1,23 +1,18 @@
-import DOMPurify from "isomorphic-dompurify";
-
 /**
- * Sanitasi HTML untuk mencegah XSS pada input teks bebas
- * Menggunakan DOMPurify dengan konfigurasi ketat
+ * lib/sanitize.ts
+ * Sanitasi teks dan HTML ringan tanpa dependensi JSDOM / isomorphic-dompurify
+ * agar 100% aman dan kompatibel dengan Vercel Serverless environment.
  */
 
-// Konfigurasi default: hanya allow text, tidak ada HTML tags
-const SANITIZE_CONFIG = {
-  ALLOWED_TAGS: [], // Strip semua HTML tags
-  ALLOWED_ATTR: [],
-  KEEP_CONTENT: true,
-};
+const ALL_TAGS_REGEX = /<[^>]*>/g;
+const SCRIPT_REGEX = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
+const STYLE_REGEX = /<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi;
 
-// Konfigurasi untuk field yang boleh minimal formatting (misal: journal summary)
-const SANITIZE_CONFIG_LIGHT = {
-  ALLOWED_TAGS: ["p", "br", "strong", "em", "u", "ul", "ol", "li"],
-  ALLOWED_ATTR: [],
-  KEEP_CONTENT: true,
-};
+// Tag formatting yang diizinkan untuk rich text
+const ALLOWED_TAGS = new Set([
+  "p", "br", "strong", "em", "u", "ul", "ol", "li",
+  "/p", "/strong", "/em", "/u", "/ul", "/ol", "/li",
+]);
 
 /**
  * Sanitasi input teks bebas (strip semua HTML)
@@ -25,24 +20,35 @@ const SANITIZE_CONFIG_LIGHT = {
  */
 export function sanitizeText(input: string | null | undefined): string | null {
   if (!input) return null;
-  return DOMPurify.sanitize(input, SANITIZE_CONFIG).trim();
+  return input
+    .replace(SCRIPT_REGEX, "")
+    .replace(STYLE_REGEX, "")
+    .replace(ALL_TAGS_REGEX, "")
+    .trim();
 }
 
 /**
- * Sanitasi input teks dengan formatting minimal
+ * Sanitasi input teks dengan formatting minimal (hanya p, br, strong, em, u, ul, ol, li)
  * Gunakan untuk: journal summary, reflection, dll.
  */
 export function sanitizeRichText(input: string | null | undefined): string | null {
   if (!input) return null;
-  return DOMPurify.sanitize(input, SANITIZE_CONFIG_LIGHT).trim();
+  let cleaned = input.replace(SCRIPT_REGEX, "").replace(STYLE_REGEX, "");
+  cleaned = cleaned.replace(/<\/?([a-zA-Z0-9]+)[^>]*>/g, (match, tag) => {
+    const isClosing = match.startsWith("</");
+    const tagName = (isClosing ? "/" : "") + tag.toLowerCase();
+    return ALLOWED_TAGS.has(tagName) ? `<${tagName}>` : "";
+  });
+  return cleaned.trim();
 }
 
 /**
- * Sanitasi title/heading (lebih ketat)
+ * Sanitasi title/heading (lebih ketat, max 200 karakter)
  */
 export function sanitizeTitle(input: string | null | undefined): string | null {
   if (!input) return null;
-  return DOMPurify.sanitize(input, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }).trim().slice(0, 200);
+  const stripped = sanitizeText(input);
+  return stripped ? stripped.slice(0, 200) : null;
 }
 
 /**

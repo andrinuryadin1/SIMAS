@@ -48,7 +48,8 @@ export async function GET(request: NextRequest) {
   if (conditions.length > 0) query += " WHERE " + conditions.join(" AND ");
   query += " ORDER BY a.date DESC, a.created_at DESC";
 
-  return NextResponse.json(db.prepare(query).all(...params));
+  const assessments = await db.prepare(query).all(...params);
+  return NextResponse.json(assessments);
 }
 
 export async function POST(request: NextRequest) {
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const id = generateId("adab");
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO adab_assessments
         (id, student_id, user_id, date, period, score_honesty, score_independence,
          score_social, score_cleanliness, score_discipline, average_score, note)

@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
   }
   query += " ORDER BY b.date DESC, b.created_at DESC";
 
-  const behaviors = db.prepare(query).all(...params);
+  const behaviors = await db.prepare(query).all(...params);
   return NextResponse.json(behaviors);
 }
 
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const id = generateId("beh");
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO behaviors (id, student_id, user_id, type, category, severity, description, action_taken, date)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(

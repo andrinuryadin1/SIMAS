@@ -16,10 +16,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const { name, description } = body;
 
     if (name !== undefined) {
-      db.prepare("UPDATE subjects SET name = ? WHERE id = ?").run(name, id);
+      await db.prepare("UPDATE subjects SET name = ? WHERE id = ?").run(name, id);
     }
     if (description !== undefined) {
-      db.prepare("UPDATE subjects SET description = ? WHERE id = ?").run(description, id);
+      await db.prepare("UPDATE subjects SET description = ? WHERE id = ?").run(description, id);
     }
 
     return NextResponse.json({ message: "Mata pelajaran berhasil diperbarui" });
@@ -37,7 +37,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     }
 
     const { id } = await params;
-    db.prepare("DELETE FROM subjects WHERE id = ?").run(id);
+    await db.prepare("DELETE FROM subjects WHERE id = ?").run(id);
     return NextResponse.json({ message: "Mata pelajaran berhasil dihapus" });
   } catch (error) {
     console.error("DELETE /api/master/subjects/[id] error:", error);
