@@ -44,3 +44,6 @@ next-env.d.ts
 data/simas.db
 data/simas.db-shm
 data/simas.db-wal
+
+.vercel
+.env*

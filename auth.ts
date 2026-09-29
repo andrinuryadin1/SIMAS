@@ -1,8 +1,8 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
-import db from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { getUserByEmailAndRole } from "@/lib/auth-helpers";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: {
@@ -30,11 +30,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const { email, password, role } = parsed.data;
 
-        const user = await db
-          .prepare("SELECT * FROM users WHERE email = ? AND role = ?")
-          .get(email, role) as
-            | { id: string; email: string; password: string; full_name: string; role: string }
-            | undefined;
+        const user = await getUserByEmailAndRole(email, role);
 
         if (!user) return null;
 
