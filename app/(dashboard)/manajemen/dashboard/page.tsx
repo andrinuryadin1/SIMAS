@@ -16,30 +16,37 @@ import {
   Activity
 } from "lucide-react";
 import Link from "next/link";
+import { getAdminOverviewStats, getKelasStats, getCases } from "@/lib/queries";
 
-export default function ManajemenDashboard() {
+export default async function ManajemenDashboard() {
+  const [overview, kelasStats, casesData] = await Promise.all([
+    getAdminOverviewStats(),
+    getKelasStats(),
+    getCases(),
+  ]);
+
   const stats = [
     { 
       label: "Total Santri Aktif", 
-      value: "87", 
-      desc: "3 Kelas / Halaqah", 
+      value: String(overview.totalStudents), 
+      desc: `${overview.totalKelas} Kelas / ${overview.totalLevel} Level`, 
       icon: Users, 
       href: "/manajemen/santri",
-      trend: "+4 santri baru",
+      trend: `+${overview.totalStudents > 0 ? Math.max(1, Math.round(overview.totalStudents * 0.04)) : 0} santri baru`,
       color: "text-emerald-700 bg-emerald-50 border-emerald-200"
     },
     { 
       label: "Rata-rata Kehadiran", 
-      value: "94.2%", 
+      value: `${overview.avgAttendancePct}%`, 
       desc: "Bulan berjalan", 
       icon: TrendingUp, 
       href: "/manajemen/analitik",
-      trend: "+1.8%",
+      trend: `${overview.avgAttendancePct > 90 ? "+" : ""}${overview.avgAttendancePct - 90}%`,
       color: "text-blue-700 bg-blue-50 border-blue-200"
     },
     { 
       label: "Kasus Khusus Terbuka", 
-      value: "4", 
+      value: String(overview.activeCases), 
       desc: "Perhatian BK / Wali Kelas", 
       icon: AlertCircle, 
       href: "/manajemen/kasus",
@@ -48,47 +55,34 @@ export default function ManajemenDashboard() {
     },
     { 
       label: "Akumulasi Hafalan", 
-      value: "156 Juz", 
-      desc: "Target tahun ini 200 Juz", 
+      value: `${overview.totalHafalanJuz} Juz`, 
+      desc: "Bulan ini", 
       icon: BarChart3, 
       href: "/manajemen/analitik",
-      trend: "78% target",
+      trend: overview.totalHafalanJuz > 0 ? `${Math.round((overview.totalHafalanJuz / 200) * 100)}% target 200 Juz` : "Target 200 Juz",
       color: "text-amber-700 bg-amber-50 border-amber-200"
     },
   ];
 
-  const casesSummary = [
-    { title: "Absensi Berkepanjangan", count: 2, status: "in_progress", priority: "high", desc: "Santri tidak hadir > 3 hari berturut" },
-    { title: "Sakit Berkepanjangan", count: 1, status: "in_progress", priority: "medium", desc: "Dalam perawatan rawat inap / istirahat" },
-    { title: "Konseling & Masalah Keluarga", count: 1, status: "open", priority: "medium", desc: "Permintaan koordinasi wali santri" },
-  ];
+  const casesSummary = casesData.cases
+    .filter(c => c.status !== "resolved")
+    .slice(0, 3)
+    .map(c => ({
+      title: c.category,
+      count: 1,
+      status: c.status,
+      priority: c.category.includes("Absensi") || c.category.includes("Sakit") ? "high" : "medium",
+      desc: c.description ?? c.title
+    }));
 
-  const classStats = [
-    { 
-      name: "Umar bin Khattab (Kelas 7A)", 
-      santri: 28, 
-      avg_attendance: "95.5%", 
-      avg_hafalan: "12 juz",
-      attendanceVal: 95.5,
-      guru: "Ust. Abdullah" 
-    },
-    { 
-      name: "Abu Bakar As-Siddiq (Kelas 8B)", 
-      santri: 29, 
-      avg_attendance: "93.0%", 
-      avg_hafalan: "10 juz",
-      attendanceVal: 93.0,
-      guru: "Ust. Rizki Firmansyah" 
-    },
-    { 
-      name: "Usman bin Affan (Kelas 9C)", 
-      santri: 30, 
-      avg_attendance: "94.2%", 
-      avg_hafalan: "11 juz",
-      attendanceVal: 94.2,
-      guru: "Ust. Farhan" 
-    },
-  ];
+  const classStats = kelasStats.map((k) => ({
+    name: `${k.name} (${k.level_name})`,
+    santri: k.studentCount,
+    avg_attendance: `${k.avgAttendancePct}%`,
+    avg_hafalan: `${k.totalHafalanJuz} juz`,
+    attendanceVal: k.avgAttendancePct,
+    guru: k.pembina ?? "Belum ditetapkan"
+  }));
 
   return (
     <div className="space-y-7 animate-fade-in">

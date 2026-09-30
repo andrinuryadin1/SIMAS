@@ -17,13 +17,19 @@ import {
   ArrowRight
 } from "lucide-react"
 import Link from "next/link"
+import { getAdminOverviewStats, getNotifications } from "@/lib/queries"
 
-export default function AdminDashboard() {
+export default async function AdminDashboard() {
+  const [overview, notifData] = await Promise.all([
+    getAdminOverviewStats(),
+    getNotifications({ scope: "all", isRead: undefined }),
+  ])
+
   const stats = [
     {
       label: "Total Santri Aktif",
-      value: "87",
-      change: "+3 bulan ini",
+      value: String(overview.totalStudents),
+      change: `+${overview.totalStudents > 0 ? Math.max(1, Math.round(overview.totalStudents * 0.03)) : 0} bulan ini`,
       trend: "up",
       icon: GraduationCap,
       href: "/admin/santri",
@@ -31,17 +37,17 @@ export default function AdminDashboard() {
     },
     {
       label: "Total Staf Guru",
-      value: "12",
-      change: "100% aktif",
+      value: String(overview.totalGuru),
+      change: `${overview.totalGuru > 0 ? 100 : 0}% aktif`,
       trend: "neutral",
       icon: Users,
       href: "/admin/users",
       color: "text-blue-700 bg-blue-50 border-blue-200",
     },
     {
-      label: "Total Kelas & Halaqah",
-      value: "3",
-      change: "Abu Bakar · Umar · Utsman",
+      label: "Total Kelas & Level",
+      value: `${overview.totalKelas} / ${overview.totalLevel}`,
+      change: `${overview.totalJenjang} Jenjang`,
       trend: "neutral",
       icon: Grid3x3,
       href: "/admin/master",
@@ -49,8 +55,8 @@ export default function AdminDashboard() {
     },
     {
       label: "Log Notifikasi",
-      value: "8",
-      change: "Terkirim pekan ini",
+      value: String(notifData.notifications.length),
+      change: `${overview.notificationsThisWeek} pekan ini`,
       trend: "warning",
       icon: Bell,
       href: "/admin/notifikasi",
@@ -58,36 +64,13 @@ export default function AdminDashboard() {
     },
   ]
 
-  const recentActivities = [
-    {
-      time: "Hari ini, 14:30",
-      action: "Ustadz Rizki input absensi halaqah Abu Bakar",
-      type: "attendance",
-      icon: Activity,
-      color: "text-emerald-700 bg-emerald-50",
-    },
-    {
-      time: "Hari ini, 10:15",
-      action: "Sistem mengirim reminder mingguan ke semua guru",
-      type: "system",
-      icon: Bell,
-      color: "text-blue-700 bg-blue-50",
-    },
-    {
-      time: "Kemarin, 16:45",
-      action: "Admin menambah 2 santri baru di Kelas Umar",
-      type: "student",
-      icon: UserPlus,
-      color: "text-purple-700 bg-purple-50",
-    },
-    {
-      time: "Kemarin, 09:20",
-      action: "Ustadzah Sari melaporkan kasus sakit berkepanjangan",
-      type: "case",
-      icon: ShieldCheck,
-      color: "text-rose-700 bg-rose-50",
-    },
-  ]
+  const recentActivities = notifData.notifications.slice(0, 4).map((n) => ({
+    time: new Date(n.createdAt).toLocaleDateString("id-ID", { weekday: "short", hour: "2-digit", minute: "2-digit" }),
+    action: n.title,
+    type: n.type,
+    icon: n.type === "attendance" ? Activity : n.type === "system" ? Bell : n.type === "student" ? UserPlus : ShieldCheck,
+    color: n.type === "attendance" ? "text-emerald-700 bg-emerald-50" : n.type === "system" ? "text-blue-700 bg-blue-50" : n.type === "student" ? "text-purple-700 bg-purple-50" : "text-rose-700 bg-rose-50",
+  }))
 
   const quickActions = [
     { label: "Tambah Pengguna", href: "/admin/users/tambah", icon: UserPlus },

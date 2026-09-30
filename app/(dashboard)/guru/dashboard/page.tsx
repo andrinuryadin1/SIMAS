@@ -17,67 +17,80 @@ import {
   UserCheck
 } from "lucide-react";
 import Link from "next/link";
+import { auth } from "@/auth";
+import { getGuruStats, getNotifications } from "@/lib/queries";
 
-export default function GuruDashboard() {
+export default async function GuruDashboard() {
+  const session = await auth();
+  const sessionUser = session?.user as { id?: string; email?: string; name?: string; role?: string } | undefined;
+  const userId = sessionUser?.id ?? "";
+  const role = sessionUser?.role ?? "";
+  const userName = sessionUser?.name ?? "Ustadz";
+
+  const [guruStats, notifData] = await Promise.all([
+    role === "guru" ? getGuruStats(userId) : Promise.resolve({ myStudents: 0, myAttendancePct: 0, myActiveCases: 0, myKelasId: null, myKelasName: null }),
+    getNotifications({ userId, scope: "mine" }),
+  ]);
+
   const stats = [
     { 
-      label: "Santri Halaqah Saya", 
-      value: "12", 
+      label: `Santri Kelas Saya (${guruStats.myKelasName ?? "-"})`, 
+      value: String(guruStats.myStudents), 
       desc: "Santri aktif terdaftar", 
       icon: Users,
-      trend: "Halaqah Abu Bakar",
+      trend: guruStats.myKelasName ?? "Belum punya kelas",
       color: "text-emerald-700 bg-emerald-50 border-emerald-200" 
     },
     { 
-      label: "Absensi Hari Ini", 
-      value: "Perlu Input", 
-      desc: "Sesi halaqah pagi & sore", 
+      label: "Absensi Minggu Ini", 
+      value: guruStats.myAttendancePct > 0 ? `${guruStats.myAttendancePct}%` : "Perlu Input", 
+      desc: "Sesi kelas", 
       icon: Calendar, 
       color: "text-amber-700 bg-amber-50 border-amber-200",
-      urgent: true 
+      urgent: guruStats.myAttendancePct === 0
     },
     { 
       label: "Hafalan Tercatat", 
-      value: "156 Juz", 
-      desc: "+14 juz bulan ini", 
+      value: "Data hafalan", 
+      desc: "Lihat detail", 
       icon: BookOpen,
-      trend: "+9.2%",
+      trend: "Lengkap",
       color: "text-blue-700 bg-blue-50 border-blue-200" 
     },
     { 
-      label: "Tugas Tertunda", 
-      value: "3", 
+      label: "Kasus Aktif", 
+      value: String(guruStats.myActiveCases), 
       desc: "Perlu ditindaklanjuti", 
       icon: AlertCircle, 
       color: "text-rose-700 bg-rose-50 border-rose-200",
-      urgent: true 
+      urgent: guruStats.myActiveCases > 0
     },
   ];
 
   const todoList = [
     { 
-      task: "Input absensi halaqah sore hari ini (Halaqah Abu Bakar)", 
-      completed: false, 
+      task: "Input absensi kelas sore hari ini", 
+      completed: guruStats.myAttendancePct > 0, 
       dueTime: "Hari ini, 16:00",
       category: "Absensi",
       badgeVariant: "destructive" as const
     },
     { 
-      task: "Catat perkembangan hafalan Surat Al-Kahf (5 santri)", 
+      task: "Catat perkembangan hafalan santri", 
       completed: false, 
       dueTime: "Hari ini, 18:00",
       category: "Hafalan",
       badgeVariant: "warning" as const
     },
     { 
-      task: "Input penilaian adab & kedisiplinan pekan ke-3", 
+      task: "Input penilaian adab & kedisiplinan pekan ini", 
       completed: false, 
-      dueTime: "Kamis, 28 Sep",
+      dueTime: "Kamis",
       category: "Adab",
       badgeVariant: "outline" as const
     },
     { 
-      task: "Menulis jurnal mengajar materi Tajwid Makhorijul Huruf", 
+      task: "Menulis jurnal mengajar", 
       completed: true, 
       dueTime: "Selesai kemarin",
       category: "Jurnal",
@@ -85,20 +98,22 @@ export default function GuruDashboard() {
     },
   ];
 
-  const upcomingReminders = [
-    { 
-      day: "Kamis, 28 Sep 2026", 
-      time: "14:00 WIB", 
-      title: "Rekap Perkembangan Santri",
-      message: "Batas akhir input evaluasi mingguan capaian hafalan dan kedisiplinan santri halaqah." 
-    },
-    { 
-      day: "Sabtu, 30 Sep 2026", 
-      time: "08:30 WIB", 
-      title: "Rapat Evaluasi Guru & Halaqah",
-      message: "Koordinasi bulanan bersama jajaran pengasuh dan manajemen pondok." 
-    },
-  ];
+  const upcomingReminders = notifData.notifications
+    .filter(n => !n.isRead)
+    .slice(0, 2)
+    .map(n => ({
+      day: new Date(n.createdAt).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+      time: new Date(n.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB",
+      title: n.title,
+      message: n.message ?? "Silakan cek detail notifikasi."
+    }));
+
+  if (upcomingReminders.length === 0) {
+    upcomingReminders.push(
+      { day: "Kamis", time: "14:00 WIB", title: "Rekap Perkembangan Santri", message: "Batas akhir input evaluasi mingguan capaian hafalan dan kedisiplinan santri kelas." },
+      { day: "Sabtu", time: "08:30 WIB", title: "Rapat Evaluasi Guru & Kelas", message: "Koordinasi bulanan bersama jajaran pengasuh dan manajemen pondok." }
+    );
+  }
 
   return (
     <div className="space-y-7 animate-fade-in">

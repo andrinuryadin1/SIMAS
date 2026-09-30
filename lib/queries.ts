@@ -816,3 +816,173 @@ export interface FollowUpNote {
   at: string;
   note: string;
 }
+
+/* ------------------------------------------------------------ dashboard extras */
+
+export interface AdminOverviewStats {
+  totalStudents: number;
+  totalGuru: number;
+  totalJenjang: number;
+  totalLevel: number;
+  totalKelas: number;
+  notificationsThisWeek: number;
+  activeCases: number;
+  avgAttendancePct: number; // monthly
+  totalHafalanJuz: number; // monthly estimate
+}
+
+export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  const fmt = (d: Date) => d.toISOString().split("T")[0];
+  const monthStart = fmt(startOfMonth);
+  const weekStart = fmt(startOfWeek);
+
+  const [totalStudents, totalGuru, totalJenjang, totalLevel, totalKelas, notifWeek, activeCases, attMonth] = await Promise.all([
+    count("SELECT COUNT(*) AS c FROM students WHERE status = 'aktif'"),
+    count("SELECT COUNT(*) AS c FROM users WHERE role = 'guru' AND status = 'active'"),
+    count("SELECT COUNT(*) AS c FROM classes"),
+    count("SELECT COUNT(*) AS c FROM halaqahs"),
+    count("SELECT COUNT(*) AS c FROM kelas"),
+    count("SELECT COUNT(*) AS c FROM notifications WHERE created_at >= ?", weekStart),
+    count("SELECT COUNT(*) AS c FROM special_cases WHERE status IN ('open','in_progress')"),
+    db.prepare(
+      `SELECT COUNT(*) AS total, SUM(CASE WHEN status IN ('hadir','terlambat') THEN 1 ELSE 0 END) AS hadir
+       FROM attendance WHERE date >= ? AND date <= ?`
+    ).get<{ total: number; hadir: number | null }>(monthStart, fmt(now)),
+  ]);
+
+  const attendancePct = attMonth && attMonth.total > 0 ? Math.round(((attMonth.hadir ?? 0) / attMonth.total) * 100) : 0;
+
+  // Hafalan total ayah estimate (juz ~ 20 ayah)
+  const hafalanAyahs = await db
+    .prepare(
+      `SELECT SUM(ayah_end - ayah_start + 1) AS sum_ayahs FROM memorization WHERE date >= ?`
+    )
+    .get<{ sum_ayahs: number | null }>(monthStart);
+
+  return {
+    totalStudents,
+    totalGuru,
+    totalJenjang,
+    totalLevel,
+    totalKelas,
+    notificationsThisWeek: notifWeek,
+    activeCases,
+    avgAttendancePct: attendancePct,
+    totalHafalanJuz: Math.round((hafalanAyahs?.sum_ayahs ?? 0) / 20),
+  };
+}
+
+export interface KelasStatRow {
+  id: string;
+  name: string;
+  jenjang_name: string;
+  level_name: string;
+  pembina: string | null;
+  studentCount: number;
+  avgAttendancePct: number;
+  totalHafalanJuz: number;
+}
+
+export async function getKelasStats(): Promise<KelasStatRow[]> {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const fmt = (d: Date) => d.toISOString().split("T")[0];
+  const monthStart = fmt(startOfMonth);
+
+  const kelasList = await db
+    .prepare("SELECT id, name, jenjang_name, level_name, pembina FROM kelas ORDER BY jenjang_name, level_name, name")
+    .all<{ id: string; name: string; jenjang_name: string; level_name: string; pembina: string | null }>();
+
+  const rows = await Promise.all(
+    kelasList.map(async (k) => {
+      const [students, attMonth, hafalanAyahs] = await Promise.all([
+        count("SELECT COUNT(*) AS c FROM students WHERE kelas_id = ? AND status = 'aktif'", k.id),
+        db
+          .prepare(
+            `SELECT COUNT(*) AS total, SUM(CASE WHEN status IN ('hadir','terlambat') THEN 1 ELSE 0 END) AS hadir
+             FROM attendance a JOIN students s ON a.student_id = s.id
+             WHERE s.kelas_id = ? AND a.date >= ? AND a.date <= ?`
+          )
+          .get<{ total: number; hadir: number | null }>(k.id, monthStart, fmt(now)),
+        db
+          .prepare(
+            `SELECT SUM(ayah_end - ayah_start + 1) AS sum_ayahs
+             FROM memorization m JOIN students s ON m.student_id = s.id
+             WHERE s.kelas_id = ? AND m.date >= ?`
+          )
+          .get<{ sum_ayahs: number | null }>(k.id, monthStart),
+      ]);
+
+      const attendancePct = attMonth && attMonth.total > 0 ? Math.round(((attMonth.hadir ?? 0) / attMonth.total) * 100) : 0;
+
+      return {
+        id: k.id,
+        name: k.name,
+        jenjang_name: k.jenjang_name,
+        level_name: k.level_name,
+        pembina: k.pembina,
+        studentCount: students,
+        avgAttendancePct: attendancePct,
+        totalHafalanJuz: Math.round((hafalanAyahs?.sum_ayahs ?? 0) / 20),
+      };
+    })
+  );
+
+  return rows;
+}
+
+export interface GuruStats {
+  myStudents: number;
+  myAttendancePct: number; // weekly
+  myActiveCases: number;
+  myKelasId: string | null;
+  myKelasName: string | null;
+}
+
+export async function getGuruStats(guruId: string): Promise<GuruStats> {
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  const fmt = (d: Date) => d.toISOString().split("T")[0];
+  const weekStart = fmt(startOfWeek);
+
+  // Find guru's kelas via pembina match on users.full_name
+  const guruNameRow = await db.prepare("SELECT full_name FROM users WHERE id = ?").get<{ full_name: string }>(guruId);
+  if (!guruNameRow) return { myStudents: 0, myAttendancePct: 0, myActiveCases: 0, myKelasId: null, myKelasName: null };
+
+  const kelasRow = await db
+    .prepare("SELECT id, name FROM kelas WHERE pembina = ? LIMIT 1")
+    .get<{ id: string; name: string }>(guruNameRow.full_name);
+
+  if (!kelasRow) return { myStudents: 0, myAttendancePct: 0, myActiveCases: 0, myKelasId: null, myKelasName: null };
+
+  const [students, attWeek, activeCases] = await Promise.all([
+    count("SELECT COUNT(*) AS c FROM students WHERE kelas_id = ? AND status = 'aktif'", kelasRow.id),
+    db
+      .prepare(
+        `SELECT COUNT(*) AS total, SUM(CASE WHEN status IN ('hadir','terlambat') THEN 1 ELSE 0 END) AS hadir
+         FROM attendance a JOIN students s ON a.student_id = s.id
+         WHERE s.kelas_id = ? AND a.date >= ?`
+      )
+      .get<{ total: number; hadir: number | null }>(kelasRow.id, weekStart),
+    count(
+      `SELECT COUNT(*) AS c FROM special_cases sc JOIN students s ON sc.student_id = s.id
+       WHERE s.kelas_id = ? AND sc.status IN ('open','in_progress')`,
+      kelasRow.id
+    ),
+  ]);
+
+  const attendancePct = attWeek && attWeek.total > 0 ? Math.round(((attWeek.hadir ?? 0) / attWeek.total) * 100) : 0;
+
+  return {
+    myStudents: students,
+    myAttendancePct: attendancePct,
+    myActiveCases: activeCases,
+    myKelasId: kelasRow.id,
+    myKelasName: kelasRow.name,
+  };
+}
