@@ -18,18 +18,23 @@ export async function GET(_request: NextRequest) {
   let students: any[] = [];
 
   if (role === "guru") {
-    // Match by pembina name in halaqahs table
+    // Match by pembina name in kelas table (pembina moved to kelas, not halaqah)
+    const sessionUserObj = await db
+      .prepare("SELECT full_name FROM users WHERE id = ?")
+      .get(userId) as { full_name: string } | undefined;
+    const fullName = sessionUserObj?.full_name ?? "";
+
     const byPembina = await db
-      .prepare("SELECT h.id, h.name FROM halaqahs h JOIN users u ON h.pembina = u.full_name WHERE u.id = ? LIMIT 1")
-      .get(userId);
+      .prepare("SELECT k.id, k.name FROM kelas k WHERE k.pembina = ? LIMIT 1")
+      .get(fullName);
     if (byPembina) {
       halaqahId = (byPembina as any).id;
       halaqahName = (byPembina as any).name;
     } else {
-      // Fallback: first halaqah this guru has attendance for
+      // Fallback: first kelas this guru has attendance for
       const fallback = await db
         .prepare(
-          "SELECT h.id, h.name FROM halaqahs h JOIN attendance a ON a.halaqah_id = h.id WHERE a.user_id = ? GROUP BY h.id LIMIT 1"
+          "SELECT DISTINCT k.id, k.name FROM kelas k JOIN students s ON s.kelas_id = k.id JOIN attendance a ON a.student_id = s.id WHERE a.user_id = ? LIMIT 1"
         )
         .get(userId);
       if (fallback) {

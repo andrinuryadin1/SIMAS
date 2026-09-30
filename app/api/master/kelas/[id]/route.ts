@@ -11,6 +11,7 @@ const PatchKelasSchema = z.object({
   jenjang_name: z.string().min(1).max(100).optional(),
   level_id: z.string().min(1).max(100).optional(),
   level_name: z.string().min(1).max(100).optional(),
+  pembina: z.string().min(1).max(100).nullable().optional(),
 });
 
 export async function PATCH(request: NextRequest, { params }: Params) {
@@ -43,6 +44,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (data.level_name !== undefined) {
     updates.push("level_name = ?");
     values.push(data.level_name);
+  }
+  if (data.pembina !== undefined) {
+    updates.push("pembina = ?");
+    values.push(data.pembina);
   }
 
   if (updates.length === 0) {

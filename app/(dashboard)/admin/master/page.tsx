@@ -659,16 +659,6 @@ export default function AdminMasterPage() {
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="pembina">Ustadz / Pembina Level</Label>
-                  <Input
-                    id="pembina"
-                    value={form.pembina}
-                    onChange={(e) => setForm({ ...form, pembina: e.target.value })}
-                    placeholder="Nama ustadz pembina (opsional)"
-                  />
-                </div>
               </>
             )}
 
@@ -991,9 +981,8 @@ function MasterCard({
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {config.key === "classes" && `${item.student_count ?? 0} Santri · Kapasitas ${item.capacity ?? 30}`}
-                  {config.key === "halaqahs" &&
-                    `${item.student_count ?? 0} Santri${item.pembina ? ` · Pembina: ${item.pembina}` : ""}`}
-                  {config.key === "kelas" && `${item.student_count ?? 0} Santri · Kapasitas ${item.capacity ?? 30}`}
+                  {config.key === "halaqahs" && `${item.student_count ?? 0} Santri`}
+                  {config.key === "kelas" && `${item.student_count ?? 0} Santri · Kapasitas ${item.capacity ?? 30}${item.pembina ? ` · Pembina: ${item.pembina}` : ""}`}
                   {config.key === "subjects" && (item.description || "Tanpa deskripsi")}
                   {config.key === "academic-years" &&
                     `Semester ${item.semester ?? "-"}${

@@ -90,6 +90,7 @@ export async function runMigrations(): Promise<void> {
            level_name TEXT,
            jenjang_name TEXT,
            capacity INTEGER DEFAULT 30,
+           pembina TEXT,
            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
          )`
       )
@@ -108,6 +109,11 @@ export async function runMigrations(): Promise<void> {
     kelas: "TEXT",
   });
   if (addedAspects > 0) changes.push("progress_aspects.kelas");
+
+  const addedKelas = await addColumnsIfMissing("kelas", {
+    pembina: "TEXT",
+  });
+  if (addedKelas > 0) changes.push("kelas.pembina");
 
   // --- Index baru ---------------------------------------------------------
   if (

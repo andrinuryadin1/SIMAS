@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS kelas (
   level_name TEXT,
   jenjang_name TEXT,
   capacity INTEGER DEFAULT 30,
+  pembina TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

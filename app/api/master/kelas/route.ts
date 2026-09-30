@@ -9,6 +9,7 @@ const KelasSchema = z.object({
   jenjang_name: z.string().min(1, "Jenjang wajib diisi").max(100),
   level_id: z.string().min(1, "Level induk wajib dipilih").max(100),
   level_name: z.string().min(1, "Level induk wajib dipilih").max(100),
+  pembina: z.string().max(100).nullish(),
 });
 
 export async function GET() {
@@ -51,9 +52,9 @@ export async function POST(request: NextRequest) {
     const id = generateId("kelas");
     await db
       .prepare(
-        "INSERT INTO kelas (id, name, capacity, jenjang_name, level_id, level_name) VALUES (?, ?, ?, ?, ?, ?)"
+        "INSERT INTO kelas (id, name, capacity, jenjang_name, level_id, level_name, pembina) VALUES (?, ?, ?, ?, ?, ?, ?)"
       )
-      .run(id, data.name, data.capacity, data.jenjang_name, data.level_id, data.level_name);
+      .run(id, data.name, data.capacity, data.jenjang_name, data.level_id, data.level_name, data.pembina ?? null);
     return NextResponse.json({ id, message: "Kelas berhasil ditambahkan" }, { status: 201 });
   } catch (err) {
     console.error("POST /api/master/kelas error:", err);

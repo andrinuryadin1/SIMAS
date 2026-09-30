@@ -83,11 +83,12 @@ export interface KelasOption {
   name: string;
   jenjang_name: string;
   level_name: string;
+  pembina: string | null;
 }
 
 export async function getKelasOptions(): Promise<KelasOption[]> {
   return db
-    .prepare("SELECT id, name, jenjang_name, level_name FROM kelas ORDER BY name")
+    .prepare("SELECT id, name, jenjang_name, level_name, pembina FROM kelas ORDER BY name")
     .all<KelasOption>();
 }
 

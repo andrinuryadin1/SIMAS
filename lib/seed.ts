@@ -41,21 +41,21 @@ export async function seedDatabase() {
 
   // Seed Kelas (classes under each Level)
   const insertKelas = db.prepare(
-    "INSERT OR IGNORE INTO kelas (id, name, level_id, level_name, jenjang_name, capacity) VALUES (?, ?, ?, ?, ?, ?)"
+    "INSERT OR IGNORE INTO kelas (id, name, level_id, level_name, jenjang_name, capacity, pembina) VALUES (?, ?, ?, ?, ?, ?, ?)"
   );
-  // Kuttab Awal classes
-  await insertKelas.run("kelas-ka-1-a", "Kuttab Awal 1-A", "level-ka-1", "Kuttab Awal 1", "Kuttab Awal", 25);
-  await insertKelas.run("kelas-ka-1-b", "Kuttab Awal 1-B", "level-ka-1", "Kuttab Awal 1", "Kuttab Awal", 25);
-  await insertKelas.run("kelas-ka-2-a", "Kuttab Awal 2-A", "level-ka-2", "Kuttab Awal 2", "Kuttab Awal", 25);
-  await insertKelas.run("kelas-ka-2-b", "Kuttab Awal 2-B", "level-ka-2", "Kuttab Awal 2", "Kuttab Awal", 25);
-  await insertKelas.run("kelas-ka-3-a", "Kuttab Awal 3-A", "level-ka-3", "Kuttab Awal 3", "Kuttab Awal", 25);
-  // Qonuni classes
-  await insertKelas.run("kelas-qo-1-a", "Qonuni 1-A", "level-qo-1", "Qonuni 1", "Qonuni", 25);
-  await insertKelas.run("kelas-qo-1-b", "Qonuni 1-B", "level-qo-1", "Qonuni 1", "Qonuni", 25);
-  await insertKelas.run("kelas-qo-2-a", "Qonuni 2-A", "level-qo-2", "Qonuni 2", "Qonuni", 25);
-  await insertKelas.run("kelas-qo-2-b", "Qonuni 2-B", "level-qo-2", "Qonuni 2", "Qonuni", 25);
-  await insertKelas.run("kelas-qo-3-a", "Qonuni 3-A", "level-qo-3", "Qonuni 3", "Qonuni", 25);
-  await insertKelas.run("kelas-qo-4-a", "Qonuni 4-A", "level-qo-4", "Qonuni 4", "Qonuni", 25);
+  // Kuttab Awal classes (pembina inherited from level's pembina)
+  await insertKelas.run("kelas-ka-1-a", "Kuttab Awal 1-A", "level-ka-1", "Kuttab Awal 1", "Kuttab Awal", 25, "Ustadz Rizki Firmansyah");
+  await insertKelas.run("kelas-ka-1-b", "Kuttab Awal 1-B", "level-ka-1", "Kuttab Awal 1", "Kuttab Awal", 25, "Ustadz Rizki Firmansyah");
+  await insertKelas.run("kelas-ka-2-a", "Kuttab Awal 2-A", "level-ka-2", "Kuttab Awal 2", "Kuttab Awal", 25, "Ustadzah Sari Amelia");
+  await insertKelas.run("kelas-ka-2-b", "Kuttab Awal 2-B", "level-ka-2", "Kuttab Awal 2", "Kuttab Awal", 25, "Ustadzah Sari Amelia");
+  await insertKelas.run("kelas-ka-3-a", "Kuttab Awal 3-A", "level-ka-3", "Kuttab Awal 3", "Kuttab Awal", 25, "Ustadz Hilmi Rahman");
+  // Qonuni classes (pembina inherited from level's pembina)
+  await insertKelas.run("kelas-qo-1-a", "Qonuni 1-A", "level-qo-1", "Qonuni 1", "Qonuni", 25, "Ustadz Rizki Firmansyah");
+  await insertKelas.run("kelas-qo-1-b", "Qonuni 1-B", "level-qo-1", "Qonuni 1", "Qonuni", 25, "Ustadz Rizki Firmansyah");
+  await insertKelas.run("kelas-qo-2-a", "Qonuni 2-A", "level-qo-2", "Qonuni 2", "Qonuni", 25, "Ustadzah Sari Amelia");
+  await insertKelas.run("kelas-qo-2-b", "Qonuni 2-B", "level-qo-2", "Qonuni 2", "Qonuni", 25, "Ustadzah Sari Amelia");
+  await insertKelas.run("kelas-qo-3-a", "Qonuni 3-A", "level-qo-3", "Qonuni 3", "Qonuni", 25, "Ustadz Hilmi Rahman");
+  await insertKelas.run("kelas-qo-4-a", "Qonuni 4-A", "level-qo-4", "Qonuni 4", "Qonuni", 25, null);
 
   // Seed academic years
   const insertAY = db.prepare("INSERT OR IGNORE INTO academic_years (id, name, semester, is_active) VALUES (?, ?, ?, ?)");
