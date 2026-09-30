@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { QuranSurahs, getJuzRange } from "@/lib/quran-surahs";
 
 interface StudentOption {
   id: string;
@@ -40,14 +41,27 @@ export default function GuruHafalanPage() {
     studentId: "",
     date: today,
     type: "ziyadah" as HafalanType,
-    surahName: "",
-    surahNumber: 0,
+    surahId: "", // changed from surahName to surahId
     ayahStart: 1,
     ayahEnd: 1,
     juz: 0,
     quality: "A" as Quality,
     note: "",
   });
+
+  // Auto-set ayahEnd max based on selected surah
+  const selectedSurah = QuranSurahs.find((s) => s.id === form.surahId);
+  const maxAyah = selectedSurah?.ayat ?? 286;
+
+  useEffect(() => {
+    if (form.surahId) {
+      setForm((prev) => ({
+        ...prev,
+        ayahStart: 1,
+        ayahEnd: Math.min(prev.ayahEnd, maxAyah),
+      }));
+    }
+  }, [form.surahId, maxAyah]);
 
   const loadStudents = useCallback(async () => {
     try {
@@ -89,22 +103,32 @@ export default function GuruHafalanPage() {
       setError("Pilih santri terlebih dahulu");
       return;
     }
-    if (!form.surahName) {
-      setError("Nama surah wajib diisi");
+    if (!form.surahId) {
+      setError("Pilih surah terlebih dahulu");
+      return;
+    }
+    if (form.ayahStart > form.ayahEnd) {
+      setError("Ayat awal tidak boleh lebih besar dari ayat akhir");
       return;
     }
 
     setSaving(true);
     setError(null);
     try {
+      const surah = selectedSurah!;
       const res = await fetch("/api/memorization", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, userId }),
+        body: JSON.stringify({
+          ...form,
+          userId,
+          surahName: surah.name,
+          surahNumber: surah.number,
+        }),
       });
       if (!res.ok) throw new Error("Gagal menyimpan");
       setSaved(true);
-      setForm((prev) => ({ ...prev, surahName: "", ayahStart: 1, ayahEnd: 1, note: "" }));
+      setForm((prev) => ({ ...prev, surahId: "", ayahStart: 1, ayahEnd: 1, note: "" }));
     } catch {
       setError("Gagal menyimpan setoran hafalan");
     } finally {
@@ -173,13 +197,27 @@ export default function GuruHafalanPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="surah">Surah</Label>
-                <Input
-                  id="surah"
-                  placeholder="An-Naba"
-                  value={form.surahName}
-                  onChange={(e) => handleChange("surahName", e.target.value)}
-                />
+                <Label htmlFor="surah">Surah <span className="text-destructive">*</span></Label>
+                <Select
+                  value={form.surahId}
+                  onValueChange={(v) => handleChange("surahId", v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih surah" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-96">
+                    {QuranSurahs.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.number}. {s.name} ({s.arab}) — {s.ayat} ayat
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedSurah && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Surah {selectedSurah.number} · {selectedSurah.name} · {selectedSurah.ayat} ayat · mulai Juz {getJuzRange(selectedSurah.number).start}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -190,8 +228,9 @@ export default function GuruHafalanPage() {
                   id="ayahStart"
                   type="number"
                   min="1"
+                  max={maxAyah}
                   value={form.ayahStart}
-                  onChange={(e) => handleChange("ayahStart", Number(e.target.value))}
+                  onChange={(e) => handleChange("ayahStart", Math.min(Number(e.target.value), maxAyah))}
                 />
               </div>
               <div className="space-y-2">
@@ -200,12 +239,13 @@ export default function GuruHafalanPage() {
                   id="ayahEnd"
                   type="number"
                   min="1"
+                  max={maxAyah}
                   value={form.ayahEnd}
-                  onChange={(e) => handleChange("ayahEnd", Number(e.target.value))}
+                  onChange={(e) => handleChange("ayahEnd", Math.min(Number(e.target.value), maxAyah))}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="juz">Juz</Label>
+                <Label htmlFor="juz">Juz (Opsional)</Label>
                 <Input
                   id="juz"
                   type="number"
@@ -250,7 +290,7 @@ export default function GuruHafalanPage() {
                 {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Simpan Setoran
               </Button>
-              <Button type="button" variant="outline" onClick={() => setForm((p) => ({ ...p, surahName: "", ayahStart: 1, ayahEnd: 1, note: "" }))}>
+              <Button type="button" variant="outline" onClick={() => setForm((p) => ({ ...p, surahId: "", ayahStart: 1, ayahEnd: 1, note: "" }))}>
                 Bersihkan Form
               </Button>
             </div>

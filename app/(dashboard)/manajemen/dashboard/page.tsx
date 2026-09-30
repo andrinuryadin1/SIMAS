@@ -64,19 +64,66 @@ export default async function ManajemenDashboard() {
     },
   ];
 
-  const casesSummary = casesData.cases
-    .filter(c => c.status !== "resolved")
-    .slice(0, 3)
-    .map(c => ({
-      title: c.category,
-      count: 1,
-      status: c.status,
-      priority: c.category.includes("Absensi") || c.category.includes("Sakit") ? "high" : "medium",
-      desc: c.description ?? c.title
+  // Kasus yang masih terbuka, dikelompokkan per kategori supaya badge "N Kasus"
+  // benar-benar mencerminkan jumlah kasus, bukan selalu "1 Kasus".
+  const openCases = casesData.cases.filter(
+    (c) => c.status === "open" || c.status === "in_progress"
+  );
+
+  const groupedCases = new Map<
+    string,
+    {
+      category: string;
+      count: number;
+      open: number;
+      inProgress: number;
+      latest: string;
+      students: string[];
+    }
+  >();
+
+  for (const c of openCases) {
+    const key = (c.category ?? "Lainnya").trim() || "Lainnya";
+    const existing = groupedCases.get(key);
+    if (existing) {
+      existing.count += 1;
+      if (c.status === "in_progress") existing.inProgress += 1;
+      else existing.open += 1;
+      if (!existing.students.includes(c.studentName)) {
+        existing.students.push(c.studentName);
+      }
+      if ((c.createdAt ?? "") > existing.latest) existing.latest = c.createdAt ?? "";
+    } else {
+      groupedCases.set(key, {
+        category: key,
+        count: 1,
+        open: c.status === "in_progress" ? 0 : 1,
+        inProgress: c.status === "in_progress" ? 1 : 0,
+        latest: c.createdAt ?? "",
+        students: [c.studentName],
+      });
+    }
+  }
+
+  const casesSummary = [...groupedCases.values()]
+    .sort((a, b) => b.count - a.count || b.latest.localeCompare(a.latest))
+    .slice(0, 4)
+    .map((g) => ({
+      title: g.category,
+      count: g.count,
+      status: g.inProgress > 0 ? ("in_progress" as const) : ("open" as const),
+      desc: `${g.open > 0 ? `${g.open} belum ditangani` : ""}${
+        g.open > 0 && g.inProgress > 0 ? ", " : ""
+      }${g.inProgress > 0 ? `${g.inProgress} sedang ditangani` : ""}`,
+      students: g.students.slice(0, 3),
+      extraStudents: Math.max(0, g.students.length - 3),
     }));
 
   const classStats = kelasStats.map((k) => ({
-    name: `${k.name} (${k.level_name})`,
+    id: k.id,
+    name: k.name,
+    jenjang: k.jenjang_name,
+    level: k.level_name,
     santri: k.studentCount,
     avg_attendance: `${k.avgAttendancePct}%`,
     avg_hafalan: `${k.totalHafalanJuz} juz`,
@@ -172,7 +219,7 @@ export default async function ManajemenDashboard() {
               </CardDescription>
             </div>
             <Badge variant="destructive" className="font-mono text-xs font-bold bg-rose-600 text-white">
-              4 Aktif
+              {casesData.summary.open + casesData.summary.inProgress} Aktif
             </Badge>
           </CardHeader>
           <Separator className="bg-slate-100" />
@@ -184,14 +231,24 @@ export default async function ManajemenDashboard() {
               >
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-bold text-slate-800">{caseItem.title}</p>
-                  <Badge 
-                    className={caseItem.priority === "high" ? "bg-rose-100 text-rose-800 border-rose-200 font-bold text-[10px]" : "bg-amber-100 text-amber-800 border-amber-200 font-bold text-[10px]"}
+                  <Badge
+                    className={
+                      caseItem.status === "in_progress"
+                        ? "bg-blue-50 text-blue-800 border-blue-200 font-bold text-[10px]"
+                        : "bg-rose-100 text-rose-800 border-rose-200 font-bold text-[10px]"
+                    }
                     variant="outline"
                   >
                     {caseItem.count} Kasus
                   </Badge>
                 </div>
                 <p className="text-xs text-slate-500 font-medium">{caseItem.desc}</p>
+                {caseItem.students.length > 0 && (
+                  <p className="text-xs text-slate-400 truncate">
+                    {caseItem.students.join(", ")}
+                    {caseItem.extraStudents > 0 && ` +${caseItem.extraStudents} lainnya`}
+                  </p>
+                )}
                 <div className="flex items-center justify-between pt-1 text-xs border-t border-slate-100 mt-2">
                   <span className="text-slate-400">Status:</span>
                   <span className="font-semibold text-slate-700 capitalize">
@@ -200,6 +257,15 @@ export default async function ManajemenDashboard() {
                 </div>
               </div>
             ))}
+
+            {casesSummary.length === 0 && (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-8 text-center">
+                <p className="text-sm font-semibold text-slate-600">Tidak ada kasus terbuka</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Semua kasus khusus maravilla telah ditangani.
+                </p>
+              </div>
+            )}
 
             <Link href="/manajemen/kasus" className="block pt-2">
               <Button variant="outline" className="w-full justify-between h-9 text-xs font-bold border-slate-200 hover:bg-slate-100 text-slate-800" size="sm">
@@ -214,26 +280,28 @@ export default async function ManajemenDashboard() {
         <Card className="lg:col-span-2 border-slate-200 shadow-xs bg-white">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <div>
-              <CardTitle className="text-lg font-bold text-slate-900 font-heading">Statistik Capaian Per Halaqah</CardTitle>
+              <CardTitle className="text-lg font-bold text-slate-900 font-heading">Statistik Capaian Per Kelas</CardTitle>
               <CardDescription className="text-xs font-medium text-slate-500">
-                Tingkat kehadiran, rata-rata hafalan, dan wali kelas binaan
+                Tingkat kehadiran, rata-rata hafalan, dan pembina kelas
               </CardDescription>
             </div>
             <Badge variant="secondary" className="font-mono text-xs font-bold text-slate-700 bg-slate-100 border-slate-200">
-              3 Kelas
+              {classStats.length} Kelas
             </Badge>
           </CardHeader>
           <Separator className="bg-slate-100" />
           <CardContent className="pt-4 space-y-3.5">
             {classStats.map((cls, idx) => (
               <div 
-                key={idx} 
+                key={cls.id || idx} 
                 className="p-4 rounded-xl border border-slate-200 bg-white hover:border-emerald-300 hover:bg-slate-50/50 transition-all space-y-3 shadow-xs"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                   <div>
                     <p className="font-heading font-bold text-sm text-slate-900">{cls.name}</p>
-                    <p className="text-xs font-medium text-slate-500">Pembina: {cls.guru}</p>
+                    <p className="text-xs font-medium text-slate-500">
+                      {[cls.jenjang, cls.level].filter(Boolean).join(" · ")} &middot; Pembina: {cls.guru}
+                    </p>
                   </div>
                   <Badge variant="outline" className="self-start sm:self-auto font-mono text-xs font-bold border-slate-300 text-slate-700">
                     {cls.santri} Santri
@@ -258,7 +326,7 @@ export default async function ManajemenDashboard() {
                     <p className="font-bold text-slate-900 text-sm">{cls.avg_hafalan}</p>
                   </div>
                   <div className="col-span-2 sm:col-span-1 flex items-center justify-end">
-                    <Link href={`/manajemen/santri?class=${encodeURIComponent(cls.name)}`}>
+                    <Link href={`/manajemen/santri?kelasId=${encodeURIComponent(cls.id)}`}>
                       <Button variant="ghost" size="xs" className="gap-1 text-primary font-bold hover:bg-emerald-50">
                         <span>Lihat Santri</span>
                         <ChevronRightIcon className="size-3.5" />
@@ -268,6 +336,15 @@ export default async function ManajemenDashboard() {
                 </div>
               </div>
             ))}
+
+            {classStats.length === 0 && (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-8 text-center">
+                <p className="text-sm font-semibold text-slate-600">Belum ada kelas</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Tambahkan master data Kelas terlebih dahulu untuk melihat statistik.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

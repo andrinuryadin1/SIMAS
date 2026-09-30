@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,30 +17,38 @@ interface Student {
   gender: string;
   class_name: string;
   halaqah_name: string | null;
+  kelas_name: string | null;
   status: string;
 }
 
 interface MasterOption {
   id: string;
   name: string;
+  level_name?: string | null;
+  jenjang_name?: string | null;
 }
 
 export default function ManajemenSantriPage() {
+  const searchParams = useSearchParams();
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<MasterOption[]>([]);
   const [halaqahs, setHalaqahs] = useState<MasterOption[]>([]);
+  const [kelasList, setKelasList] = useState<MasterOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [classFilter, setClassFilter] = useState("all");
-  const [halaqahFilter, setHalaqahFilter] = useState("all");
+  const [classFilter, setClassFilter] = useState(searchParams.get("classId") ?? "all");
+  const [halaqahFilter, setHalaqahFilter] = useState(searchParams.get("halaqahId") ?? "all");
+  const [kelasFilter, setKelasFilter] = useState(searchParams.get("kelasId") ?? "all");
 
   useEffect(() => {
     Promise.all([
       fetch("/api/master/classes").then((r) => (r.ok ? r.json() : [])),
       fetch("/api/master/halaqahs").then((r) => (r.ok ? r.json() : [])),
-    ]).then(([resClasses, resHalaqahs]) => {
+      fetch("/api/master/kelas").then((r) => (r.ok ? r.json() : [])),
+    ]).then(([resClasses, resHalaqahs, resKelas]) => {
       setClasses(resClasses);
       setHalaqahs(resHalaqahs);
+      setKelasList(resKelas);
     });
   }, []);
 
@@ -48,7 +57,8 @@ export default function ManajemenSantriPage() {
       const params = new URLSearchParams();
       if (classFilter && classFilter !== "all") params.set("classId", classFilter);
       if (halaqahFilter && halaqahFilter !== "all") params.set("halaqahId", halaqahFilter);
-      
+      if (kelasFilter && kelasFilter !== "all") params.set("kelasId", kelasFilter);
+
       const res = await fetch(`/api/santri?${params}`);
       if (res.ok) {
         const data = await res.json();
@@ -66,7 +76,7 @@ export default function ManajemenSantriPage() {
 
   useEffect(() => {
     fetchStudents();
-  }, [classFilter, halaqahFilter]);
+  }, [classFilter, halaqahFilter, kelasFilter]);
 
   const filteredStudents = students.filter((s) => {
     if (!search) return true;
@@ -119,6 +129,21 @@ export default function ManajemenSantriPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="w-full sm:w-48">
+              <Select value={kelasFilter} onValueChange={setKelasFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Semua Kelas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Kelas</SelectItem>
+                  {kelasList.map((k) => (
+                    <SelectItem key={k.id} value={k.id}>
+                      {[k.name, k.level_name].filter(Boolean).join(" · ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -142,6 +167,7 @@ export default function ManajemenSantriPage() {
                     <TableHead>Nama</TableHead>
                     <TableHead>Jenjang</TableHead>
                     <TableHead>Level</TableHead>
+                    <TableHead>Kelas</TableHead>
                     <TableHead>Jenis Kelamin</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
@@ -158,6 +184,7 @@ export default function ManajemenSantriPage() {
                       <TableCell className="font-medium">{student.full_name}</TableCell>
                       <TableCell>{student.class_name}</TableCell>
                       <TableCell>{student.halaqah_name || "-"}</TableCell>
+                      <TableCell>{student.kelas_name || "-"}</TableCell>
                       <TableCell>
                         <Badge variant="outline">
                           {student.gender === "L" ? "Laki-laki" : "Perempuan"}

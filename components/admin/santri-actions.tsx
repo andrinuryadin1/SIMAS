@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, Trash2, RotateCcw, AlertCircle, Loader2, X } from "lucide-react";
+import { Upload, Trash2, RotateCcw, AlertCircle, Loader2, X, Download } from "lucide-react";
 
 interface AdminSantriActionsProps {
   onImportSuccess?: () => void;
@@ -18,6 +18,28 @@ export function AdminSantriActions({
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [isReseedOpen, setIsReseedOpen] = useState(false);
+
+  const downloadTemplate = async () => {
+    try {
+      const res = await fetch("/api/admin/santri/import");
+      if (!res.ok) {
+        alert("Gagal mengambil template");
+        return;
+      }
+      const data = await res.json();
+      const headers = data.columns.map((c: any) => c.key).join(",");
+      const sample = data.columns.map((c: any) => c.example ?? "").join(",");
+      const csv = [headers, sample].join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "template-import-santri.csv";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch {
+      alert("Gagal mendownload template");
+    }
+  };
 
   return (
     <>
@@ -41,6 +63,14 @@ export function AdminSantriActions({
         loadingText="Mereset dan seeding..."
       />
       <div className="flex flex-wrap gap-2 mx-2 mb-4">
+        <Button
+          onClick={downloadTemplate}
+          aria-label="Download template import santri"
+          variant="outline"
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Download Template
+        </Button>
         <Button
           onClick={() => setIsImportOpen(true)}
           aria-label="Import data santri"

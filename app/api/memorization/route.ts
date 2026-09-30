@@ -3,6 +3,9 @@ import { z } from "zod";
 import db from "@/lib/db";
 import { getSessionOrError, parseBody, generateId } from "@/lib/api-utils";
 import { sanitizeText } from "@/lib/sanitize";
+import { QuranSurahs, findSurah } from "@/lib/quran-surahs";
+
+const surahByNumber = new Map(QuranSurahs.map((s) => [s.number, s]));
 
 // ✅ Validasi Zod untuk POST setoran hafalan
 const MemorizationSchema = z.object({
@@ -53,6 +56,28 @@ export async function POST(request: NextRequest) {
   const { data, error: parseError } = await parseBody(request, MemorizationSchema);
   if (parseError) return parseError;
 
+  // ✅ Validasi terhadap data Al-Qur'an asli (114 surah, jumlah ayat pasti).
+  // Tanpa ini, frontend bisa mengirim ayat 999 untuk surah An-Naba yang cuma 40 ayat.
+  const surah =
+    (data.surahNumber !== undefined ? surahByNumber.get(data.surahNumber) : undefined) ??
+    findSurah(data.surahName);
+
+  if (!surah) {
+    return NextResponse.json(
+      { error: `Surah "${data.surahName}" tidak dikenal. Gunakan salah satu dari 114 surah Al-Qur'an.` },
+      { status: 400 }
+    );
+  }
+
+  if (data.ayahEnd > surah.ayat) {
+    return NextResponse.json(
+      {
+        error: `Ayat akhir melebihi jumlah ayat Surah ${surah.name} (hanya ${surah.ayat} ayat).`,
+      },
+      { status: 400 }
+    );
+  }
+
   // ✅ Sanitasi note
   const cleanNote = sanitizeText(data.note);
 
@@ -66,8 +91,8 @@ export async function POST(request: NextRequest) {
       data.studentId,
       data.userId,
       data.type,
-      data.surahName,
-      data.surahNumber ?? null,
+      surah.name,
+      surah.number,
       data.ayahStart,
       data.ayahEnd,
       data.juz ?? null,

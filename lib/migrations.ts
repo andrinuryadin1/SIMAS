@@ -115,6 +115,13 @@ export async function runMigrations(): Promise<void> {
   });
   if (addedKelas > 0) changes.push("kelas.pembina");
 
+  // `surah_number` dipakai dropdown setoran hafalan supaya guru bisa melihat
+  // nomor & jumlah ayat tiap surah, bukan cuma nama bebas ketik.
+  const addedMemorization = await addColumnsIfMissing("memorization", {
+    surah_number: "INTEGER",
+  });
+  if (addedMemorization > 0) changes.push("memorization.surah_number");
+
   // --- Index baru ---------------------------------------------------------
   if (
     await createIndexIfMissing(

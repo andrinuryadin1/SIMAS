@@ -70,7 +70,7 @@ export default function ManajemenLayout({
         user={{ fullName: user.fullName, email: user.email, avatarUrl: user.avatarUrl }}
       />
       <SidebarInset>
-        <DashboardHeader user={user} unreadCount={1} />
+        <DashboardHeader user={user} />
         <main className="flex-1 overflow-y-auto">
           <div className="p-6 max-w-7xl mx-auto">{children}</div>
         </main>

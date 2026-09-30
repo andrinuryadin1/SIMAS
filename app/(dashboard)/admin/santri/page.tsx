@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
-import { Plus, Edit, Trash2, Eye, Power, Upload } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Power } from "lucide-react";
 import { getStudents, getClassOptions, getHalaqahOptions, getKelasOptions } from "@/lib/queries";
 import { DataToolbar } from "@/components/data-toolbar";
 import { RowActionMenu } from "@/components/row-action-menu";
@@ -56,16 +56,6 @@ async function SantriTable({ searchParams }: { searchParams: Promise<{ [key: str
             Tambah Santri
           </Link>
         </Button>
-        <Button
-          variant="secondary"
-          size="icon"
-          className="hidden sm:block"
-          aria-label="Import data santri"
-          title="Import Data Santri"
-        >
-          <Upload className="h-4 w-4" />
-        </Button>
-        {/* Import Modal akan muncul di sini */}
       </div>
 
       <Card>

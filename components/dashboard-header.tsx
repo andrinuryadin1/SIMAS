@@ -3,12 +3,12 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { Bell, ChevronRight, LogOut, Search } from "lucide-react"
+import { ChevronRight, LogOut, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
+import { NotificationBell } from "@/components/notification-bell"
 
 interface DashboardHeaderProps {
   user: {
@@ -17,7 +17,6 @@ interface DashboardHeaderProps {
     role: "admin" | "guru" | "manajemen"
     avatarUrl?: string
   }
-  unreadCount?: number
 }
 
 function getInitials(name: string) {
@@ -50,7 +49,7 @@ const segmentLabels: Record<string, string> = {
   keuangan: "Keuangan",
 }
 
-export function DashboardHeader({ user, unreadCount = 0 }: DashboardHeaderProps) {
+export function DashboardHeader({ user }: DashboardHeaderProps) {
   const pathname = usePathname()
 
   const getBreadcrumbs = () => {
@@ -101,19 +100,7 @@ export function DashboardHeader({ user, unreadCount = 0 }: DashboardHeaderProps)
 
       {/* Right actions */}
       <div className="flex items-center gap-2">
-        {/* Notification */}
-        <Link href={`/${user.role}/notifikasi`}>
-          <Button variant="ghost" size="icon-sm" className="relative text-slate-700 hover:text-slate-950 hover:bg-slate-100">
-            <Bell className="size-4.5" />
-            {unreadCount > 0 && (
-              <Badge
-                className="absolute -top-0.5 -right-0.5 size-4.5 min-w-4.5 flex items-center justify-center p-0 text-[10px] font-bold rounded-full bg-rose-600 text-white"
-              >
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </Badge>
-            )}
-          </Button>
-        </Link>
+        <NotificationBell role={user.role} />
 
         <Separator orientation="vertical" className="h-4 bg-slate-200" />
 
