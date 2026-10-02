@@ -9,7 +9,15 @@
     "lint": "eslint",
     "postinstall": "prisma skills sync || exit 0",
     "seed": "npx tsx lib/seed.ts",
-    "migrate": "tsx scripts/migrate.ts"
+    "migrate": "tsx scripts/migrate.ts",
+    "vercel:check": "node scripts/vercel-helper.mjs check",
+    "vercel:setup": "node scripts/vercel-helper.mjs setup",
+    "vercel:test": "node scripts/vercel-helper.mjs test",
+    "vercel:build": "node scripts/vercel-helper.mjs build",
+    "vercel:secrets": "node scripts/vercel-helper.mjs secrets",
+    "vercel:checklist": "node scripts/vercel-helper.mjs checklist",
+    "vercel:full": "node scripts/vercel-helper.mjs full",
+    "vercel:env": "node scripts/setup-vercel-env.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
