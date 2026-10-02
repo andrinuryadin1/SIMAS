@@ -1,11 +1,26 @@
 import { QuranMemorization, MemorizationType, Quality } from "@/lib/types";
 
+/**
+ * Tanggal relatif terhadap hari ini.
+ *
+ * Sama seperti mock/attendance.ts: tanggal literal 2024-09 membuat
+ * `totalHafalanJuz` (filter "bulan ini") selalu 0. Lihat catatan di sana.
+ */
+const dayOffset = (daysAgo: number): string => {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toISOString().split("T")[0];
+};
+
+const TODAY = dayOffset(0);
+const D1 = dayOffset(1);
+
 export const mockQuranMemorization: QuranMemorization[] = [
   {
     id: "mem-001",
     studentId: "student-001",
     teacherId: "guru-001",
-    date: "2024-09-21",
+    date: TODAY,
     type: "ziyadah",
     surahName: "An-Naba",
     surahNumber: 78,
@@ -14,13 +29,13 @@ export const mockQuranMemorization: QuranMemorization[] = [
     juz: 30,
     quality: "A",
     note: "Bacaan lancar, tajwid baik",
-    createdAt: new Date("2024-09-21"),
+    createdAt: new Date(TODAY),
   },
   {
     id: "mem-002",
     studentId: "student-001",
     teacherId: "guru-001",
-    date: "2024-09-20",
+    date: D1,
     type: "murojaah",
     surahName: "An-Naba",
     surahNumber: 78,
@@ -29,13 +44,13 @@ export const mockQuranMemorization: QuranMemorization[] = [
     juz: 30,
     quality: "A",
     note: "Sempurna",
-    createdAt: new Date("2024-09-20"),
+    createdAt: new Date(D1),
   },
   {
     id: "mem-003",
     studentId: "student-002",
     teacherId: "guru-001",
-    date: "2024-09-21",
+    date: TODAY,
     type: "ziyadah",
     surahName: "An-Naba",
     surahNumber: 78,
@@ -44,13 +59,13 @@ export const mockQuranMemorization: QuranMemorization[] = [
     juz: 30,
     quality: "B",
     note: "Bacaan lancar, beberapa kesalahan tajwid",
-    createdAt: new Date("2024-09-21"),
+    createdAt: new Date(TODAY),
   },
   {
     id: "mem-004",
     studentId: "student-003",
     teacherId: "guru-001",
-    date: "2024-09-21",
+    date: TODAY,
     type: "ziyadah",
     surahName: "An-Naba",
     surahNumber: 78,
@@ -59,13 +74,13 @@ export const mockQuranMemorization: QuranMemorization[] = [
     juz: 30,
     quality: "C",
     note: "Masih tersendat, perlu latihan lebih",
-    createdAt: new Date("2024-09-21"),
+    createdAt: new Date(TODAY),
   },
   {
     id: "mem-005",
     studentId: "student-004",
     teacherId: "guru-001",
-    date: "2024-09-20",
+    date: D1,
     type: "ziyadah",
     surahName: "An-Naba",
     surahNumber: 78,
@@ -74,13 +89,13 @@ export const mockQuranMemorization: QuranMemorization[] = [
     juz: 30,
     quality: "A",
     note: "Sempurna, tajwid rapi",
-    createdAt: new Date("2024-09-20"),
+    createdAt: new Date(D1),
   },
   {
     id: "mem-006",
     studentId: "student-005",
     teacherId: "guru-002",
-    date: "2024-09-21",
+    date: TODAY,
     type: "ziyadah",
     surahName: "An-Nahu",
     surahNumber: 16,
@@ -89,7 +104,7 @@ export const mockQuranMemorization: QuranMemorization[] = [
     juz: 14,
     quality: "A",
     note: "Penguasaan baik, tajwid benar",
-    createdAt: new Date("2024-09-21"),
+    createdAt: new Date(TODAY),
   },
 ];
 

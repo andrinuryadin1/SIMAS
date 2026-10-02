@@ -70,7 +70,11 @@ CREATE TABLE IF NOT EXISTS kelas (
   jenjang_name TEXT,
   capacity INTEGER DEFAULT 30,
   pembina TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  -- Relasi ke users(id): kolom pembina menyimpan nama untuk tampilan,
+  -- sedangkan pembina_id dipakai query statistik supaya tahan typo/duplikasi.
+  pembina_id TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (pembina_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS attendance (

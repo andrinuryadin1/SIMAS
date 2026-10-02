@@ -112,8 +112,30 @@ export async function runMigrations(): Promise<void> {
 
   const addedKelas = await addColumnsIfMissing("kelas", {
     pembina: "TEXT",
+    // Relasi FK ke users(id). `pembina` (nama teks) tetap dipertahankan untuk
+    // tampilan, tapi query statistik WAJIB memakai `pembina_id`: pencocokan
+    // nama rapuh, dan tidak bisa membedakan dua orang dengan nama sama.
+    pembina_id: "TEXT",
   });
-  if (addedKelas > 0) changes.push("kelas.pembina");
+  if (addedKelas > 0) changes.push("kelas.pembina, kelas.pembina_id");
+
+  // Backfill `pembina_id` dari `pembina` (nama) untuk data lama.
+  const kelasRows = await db
+    .prepare("SELECT id, pembina, pembina_id FROM kelas WHERE pembina IS NOT NULL AND pembina_id IS NULL")
+    .all<{ id: string; pembina: string; pembina_id: string | null }>();
+  for (const k of kelasRows) {
+    const user = await db
+      .prepare("SELECT id FROM users WHERE full_name = ? LIMIT 1")
+      .get<{ id: string }>(k.pembina);
+    if (user?.id) {
+      await db.prepare("UPDATE kelas SET pembina_id = ? WHERE id = ?").run(user.id, k.id);
+    } else {
+      console.warn(
+        `[migrations] kelas "${k.id}": pembina "${k.pembina}" tidak cocok dengan users.full_name — pembina_id kosong`
+      );
+    }
+  }
+  if (kelasRows.length > 0) changes.push(`kelas.pembina_id backfill (${kelasRows.length} baris)`);
 
   // `surah_number` dipakai dropdown setoran hafalan supaya guru bisa melihat
   // nomor & jumlah ayat tiap surah, bukan cuma nama bebas ketik.

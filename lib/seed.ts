@@ -39,24 +39,6 @@ export async function seedDatabase() {
   await insertHalaqah.run("level-qo-3", "Qonuni 3", "Ustadz Hilmi Rahman", "Qonuni");
   await insertHalaqah.run("level-qo-4", "Qonuni 4", null, "Qonuni");
 
-  // Seed Kelas (classes under each Level)
-  const insertKelas = db.prepare(
-    "INSERT OR IGNORE INTO kelas (id, name, level_id, level_name, jenjang_name, capacity, pembina) VALUES (?, ?, ?, ?, ?, ?, ?)"
-  );
-  // Kuttab Awal classes (pembina inherited from level's pembina)
-  await insertKelas.run("kelas-ka-1-a", "Kuttab Awal 1-A", "level-ka-1", "Kuttab Awal 1", "Kuttab Awal", 25, "Ustadz Rizki Firmansyah");
-  await insertKelas.run("kelas-ka-1-b", "Kuttab Awal 1-B", "level-ka-1", "Kuttab Awal 1", "Kuttab Awal", 25, "Ustadz Rizki Firmansyah");
-  await insertKelas.run("kelas-ka-2-a", "Kuttab Awal 2-A", "level-ka-2", "Kuttab Awal 2", "Kuttab Awal", 25, "Ustadzah Sari Amelia");
-  await insertKelas.run("kelas-ka-2-b", "Kuttab Awal 2-B", "level-ka-2", "Kuttab Awal 2", "Kuttab Awal", 25, "Ustadzah Sari Amelia");
-  await insertKelas.run("kelas-ka-3-a", "Kuttab Awal 3-A", "level-ka-3", "Kuttab Awal 3", "Kuttab Awal", 25, "Ustadz Hilmi Rahman");
-  // Qonuni classes (pembina inherited from level's pembina)
-  await insertKelas.run("kelas-qo-1-a", "Qonuni 1-A", "level-qo-1", "Qonuni 1", "Qonuni", 25, "Ustadz Rizki Firmansyah");
-  await insertKelas.run("kelas-qo-1-b", "Qonuni 1-B", "level-qo-1", "Qonuni 1", "Qonuni", 25, "Ustadz Rizki Firmansyah");
-  await insertKelas.run("kelas-qo-2-a", "Qonuni 2-A", "level-qo-2", "Qonuni 2", "Qonuni", 25, "Ustadzah Sari Amelia");
-  await insertKelas.run("kelas-qo-2-b", "Qonuni 2-B", "level-qo-2", "Qonuni 2", "Qonuni", 25, "Ustadzah Sari Amelia");
-  await insertKelas.run("kelas-qo-3-a", "Qonuni 3-A", "level-qo-3", "Qonuni 3", "Qonuni", 25, "Ustadz Hilmi Rahman");
-  await insertKelas.run("kelas-qo-4-a", "Qonuni 4-A", "level-qo-4", "Qonuni 4", "Qonuni", 25, null);
-
   // Seed academic years
   const insertAY = db.prepare("INSERT OR IGNORE INTO academic_years (id, name, semester, is_active) VALUES (?, ?, ?, ?)");
   await insertAY.run("ay-001", "2024/2025", "ganjil", 0);
@@ -81,19 +63,48 @@ export async function seedDatabase() {
   }
   console.log(`  ✓ ${mockUsers.length} users`);
 
+  // Seed Kelas (kelas nyata di bawah setiap Level).
+  //
+  // WAJIB dieksekusi SESUDAH users: kolom `pembina_id` memakai FK ke
+  // users(id). Dulu tabel ini di-seed sebelum users sehingga relasi ke guru
+  // hanya bisa disimpan sebagai teks (`pembina`),/statistik guru jadi rapuh.
+  const insertKelas = db.prepare(
+    "INSERT OR IGNORE INTO kelas (id, name, level_id, level_name, jenjang_name, capacity, pembina, pembina_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+  );
+  const KELAS_SEED: Array<[string, string, string, string, string, number, string | null, string | null]> = [
+    // Kuttab Awal — pembina mengikuti level masing-masing
+    ["kelas-ka-1-a", "Kuttab Awal 1-A", "level-ka-1", "Kuttab Awal 1", "Kuttab Awal", 25, "Ustadz Rizki Firmansyah", "guru-001"],
+    ["kelas-ka-1-b", "Kuttab Awal 1-B", "level-ka-1", "Kuttab Awal 1", "Kuttab Awal", 25, "Ustadz Rizki Firmansyah", "guru-001"],
+    ["kelas-ka-2-a", "Kuttab Awal 2-A", "level-ka-2", "Kuttab Awal 2", "Kuttab Awal", 25, "Ustadzah Sari Amelia", "guru-002"],
+    ["kelas-ka-2-b", "Kuttab Awal 2-B", "level-ka-2", "Kuttab Awal 2", "Kuttab Awal", 25, "Ustadzah Sari Amelia", "guru-002"],
+    ["kelas-ka-3-a", "Kuttab Awal 3-A", "level-ka-3", "Kuttab Awal 3", "Kuttab Awal", 25, "Ustadz Hilmi Rahman", "guru-003"],
+    // Qonuni — pembina mengikuti level masing-masing
+    ["kelas-qo-1-a", "Qonuni 1-A", "level-qo-1", "Qonuni 1", "Qonuni", 25, "Ustadz Rizki Firmansyah", "guru-001"],
+    ["kelas-qo-1-b", "Qonuni 1-B", "level-qo-1", "Qonuni 1", "Qonuni", 25, "Ustadz Rizki Firmansyah", "guru-001"],
+    ["kelas-qo-2-a", "Qonuni 2-A", "level-qo-2", "Qonuni 2", "Qonuni", 25, "Ustadzah Sari Amelia", "guru-002"],
+    ["kelas-qo-2-b", "Qonuni 2-B", "level-qo-2", "Qonuni 2", "Qonuni", 25, "Ustadzah Sari Amelia", "guru-002"],
+    ["kelas-qo-3-a", "Qonuni 3-A", "level-qo-3", "Qonuni 3", "Qonuni", 25, "Ustadz Hilmi Rahman", "guru-003"],
+    ["kelas-qo-4-a", "Qonuni 4-A", "level-qo-4", "Qonuni 4", "Qonuni", 25, null, null],
+  ];
+  for (const row of KELAS_SEED) {
+    await insertKelas.run(...row);
+  }
+
   // Seed students
   const insertStudent = db.prepare(`
     INSERT OR IGNORE INTO students (
       id, nis, full_name, gender, birth_date, birth_place, address,
       class_id, class_name, halaqah_id, academic_year_id, enrollment_date,
-      father_name, mother_name, guardian_name, guardian_phone, photo_url, status, notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      father_name, mother_name, guardian_name, guardian_phone, photo_url, status, notes,
+      kelas_id, kelas_name
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   for (const s of mockStudents) {
     await insertStudent.run(
       s.id, s.nis, s.fullName, s.gender, s.birthDate, s.birthPlace, s.address,
       s.classId, s.className, s.halaqahId, s.academicYearId, s.enrollmentDate,
-      s.fatherName, s.motherName, s.guardianName, s.guardianPhone, s.photoUrl, s.status, s.notes
+      s.fatherName, s.motherName, s.guardianName, s.guardianPhone, s.photoUrl, s.status, s.notes,
+      s.kelasId ?? null, s.kelasName ?? null
     );
   }
   console.log(`  ✓ ${mockStudents.length} students`);

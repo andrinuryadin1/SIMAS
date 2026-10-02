@@ -68,6 +68,14 @@ export interface Student {
   className?: string;
   classId?: string;
   halaqahId?: string;
+  /**
+   * Kelas Assignment yang sebenarnya (Jenjang → Level → Kelas).
+   * Inilah kolom yang dipakai seluruh statistik dashboard. `classId`/
+   * `className`/`halaqahId` berasal dari model lama dan deprecated —
+   * lihat lib/mock/students.ts untuk pemetaannya.
+   */
+  kelasId?: string;
+  kelasName?: string;
   academicYearId?: string;
   enrollmentDate: string;
   fatherName?: string;

@@ -18,6 +18,10 @@ import { seedDatabase } from "@/lib/seed";
 let initPromise: Promise<void> | null = null;
 
 async function run(): Promise<void> {
+  // Mode ketat: migrasi & seed HARUS gagal keras kalau ada error, bukan
+  // menelan error diam-diam. Tanpa ini, seed yang gagal diam-diam tetap
+  // mencetak "successfully" dan menyisakan database kosong.
+  db.strict(true);
   try {
     await db.exec(SCHEMA_SQL);
     await runMigrations();
@@ -27,6 +31,8 @@ async function run(): Promise<void> {
     // Request berikutnya akan tetap mencoba query dan menampilkan error yang
     // berguna di UI / log.
     console.error("[init-db] Failed to initialize database:", error);
+  } finally {
+    db.strict(false);
   }
 }
 

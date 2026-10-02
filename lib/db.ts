@@ -62,7 +62,34 @@ interface Statement {
 const toArgs = (params: unknown[]): InValue[] =>
   params.map((p) => (p === undefined || p === null ? null : (p as InValue)));
 
+/**
+ * Mode ketat.
+ *
+ * Default (false): error query di-log lalu ditelan — `all` -> [], `get` ->
+ * undefined, `run` -> { changes: 0 }. Ini yang dipakai halaman baca, supaya
+ * satu query rusak tidak menjatuhkan seluruh request.
+ *
+ * `db.strict(true)` membuat semua operasi MEMLEMPARKAN error. Wajib untuk
+ * migrasi & seed: sebelumnya seed bisa gagal diam-diam (mis. FK parent
+ * tidak ada) tapi tetap mencetak "seeded successfully" dengan centang hijau,
+ * sehingga tabel berakhir kosong tanpa ada yang menyadari.
+ */
+let strict = false;
+
+const sqlPreview = (sql: string) => sql.replace(/\s+/g, " ").trim().slice(0, 160);
+
 const db = {
+  /** Nyalakan atau matikan mode ketat. Dipakai init-db, migrasi, dan seed. */
+  strict(on = true) {
+    strict = on;
+    return db;
+  },
+
+  /** Status mode ketat — untuk keperluan diagnostik. */
+  get isStrict() {
+    return strict;
+  },
+
   prepare(sql: string): Statement {
     return {
       async all<T>(...params: unknown[]): Promise<T[]> {
@@ -71,7 +98,8 @@ const db = {
           const rs = await client.execute({ sql, args: toArgs(params) });
           return rs.rows as unknown as T[];
         } catch (e) {
-          console.error("DB query error (all):", e);
+          console.error(`DB query error (all) [${sqlPreview(sql)}]:`, e);
+          if (strict) throw e;
           return [];
         }
       },
@@ -81,7 +109,8 @@ const db = {
           const rs = await client.execute({ sql, args: toArgs(params) });
           return rs.rows.length > 0 ? (rs.rows[0] as unknown as T) : undefined;
         } catch (e) {
-          console.error("DB query error (get):", e);
+          console.error(`DB query error (get) [${sqlPreview(sql)}]:`, e);
+          if (strict) throw e;
           return undefined;
         }
       },
@@ -94,7 +123,8 @@ const db = {
             lastInsertRowid: Number(rs.lastInsertRowid ?? 0),
           };
         } catch (e) {
-          console.error("DB query error (run):", e);
+          console.error(`DB query error (run) [${sqlPreview(sql)}]:`, e);
+          if (strict) throw e;
           return { changes: 0, lastInsertRowid: 0 };
         }
       },
@@ -106,7 +136,8 @@ const db = {
       const client = getClient();
       await client.executeMultiple(sql);
     } catch (e) {
-      console.error("DB exec error:", e);
+      console.error(`DB exec error [${sqlPreview(sql)}]:`, e);
+      if (strict) throw e;
     }
   },
 

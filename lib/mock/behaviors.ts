@@ -1,10 +1,16 @@
 ﻿import { BehaviorLog } from "../types";
 
+/**
+ * CATATAN ID: `studentId` WAJIB memakai format `student-0NN` yang sama dengan
+ * `lib/mock/students.ts` (student-001 … student-009). Dulu file ini memakai
+ * `student-1`, `student-2`, dst, sehingga FK ke `students(id)` gagal dan tabel
+ * `behaviors` berakhir kosong tanpa error yang terlihat.
+ */
 export const mockBehaviors: BehaviorLog[] = [
   {
     id: "beh-1",
-    studentId: "student-1",
-    teacherId: "user-2",
+    studentId: "student-001",
+    teacherId: "guru-002",
     date: "2026-09-15",
     type: "positif",
     category: "kepemimpinan",
@@ -14,8 +20,8 @@ export const mockBehaviors: BehaviorLog[] = [
   },
   {
     id: "beh-2",
-    studentId: "student-1",
-    teacherId: "user-2",
+    studentId: "student-001",
+    teacherId: "guru-002",
     date: "2026-09-10",
     type: "pelanggaran",
     category: "kedisiplinan",
@@ -26,8 +32,8 @@ export const mockBehaviors: BehaviorLog[] = [
   },
   {
     id: "beh-3",
-    studentId: "student-2",
-    teacherId: "user-2",
+    studentId: "student-002",
+    teacherId: "guru-002",
     date: "2026-09-14",
     type: "positif",
     category: "akhlak",
@@ -37,8 +43,8 @@ export const mockBehaviors: BehaviorLog[] = [
   },
   {
     id: "beh-4",
-    studentId: "student-3",
-    teacherId: "user-2",
+    studentId: "student-003",
+    teacherId: "guru-002",
     date: "2026-09-12",
     type: "pelanggaran",
     category: "akademik",
@@ -49,8 +55,8 @@ export const mockBehaviors: BehaviorLog[] = [
   },
   {
     id: "beh-5",
-    studentId: "student-3",
-    teacherId: "user-2",
+    studentId: "student-003",
+    teacherId: "guru-002",
     date: "2026-09-08",
     type: "pelanggaran",
     category: "kedisiplinan",
@@ -61,8 +67,8 @@ export const mockBehaviors: BehaviorLog[] = [
   },
   {
     id: "beh-6",
-    studentId: "student-4",
-    teacherId: "user-3",
+    studentId: "student-004",
+    teacherId: "guru-003",
     date: "2026-09-17",
     type: "positif",
     category: "akhlak",

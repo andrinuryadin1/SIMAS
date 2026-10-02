@@ -1,7 +1,7 @@
 import { Student, StudentStatus } from "@/lib/types";
 
 export const mockStudents: Student[] = [
-  // Kelas A - Halaqah Abu Bakar
+  // --- Kuttab Awal 1-A (kelas-ka-1-a) ---
   {
     id: "student-001",
     nis: "KAF-2024-001",
@@ -10,9 +10,13 @@ export const mockStudents: Student[] = [
     birthDate: "2020-03-15",
     birthPlace: "Bandung",
     address: "Jl. Merpati No. 12, Bandung",
-    className: "Umar bin Khattab",
-    classId: "class-001",
-    halaqahId: "halaqah-001",
+    // kelas Assignment — model baru, satu-satunya yang dipakai dashboard
+    kelasId: "kelas-ka-1-a",
+    kelasName: "Kuttab Awal 1-A",
+    // model lama (deprecated): class_* + halaqah_*
+    classId: "class-ka",
+    className: "Kuttab Awal",
+    halaqahId: "level-ka-1",
     academicYearId: "ay-001",
     enrollmentDate: "2024-07-10",
     fatherName: "Mubarak Setiawan",
@@ -33,9 +37,13 @@ export const mockStudents: Student[] = [
     birthDate: "2020-05-22",
     birthPlace: "Bandung",
     address: "Jl. Melati No. 45, Bandung",
-    className: "Umar bin Khattab",
-    classId: "class-001",
-    halaqahId: "halaqah-001",
+    // kelas Assignment — model baru, satu-satunya yang dipakai dashboard
+    kelasId: "kelas-ka-1-a",
+    kelasName: "Kuttab Awal 1-A",
+    // model lama (deprecated): class_* + halaqah_*
+    classId: "class-ka",
+    className: "Kuttab Awal",
+    halaqahId: "level-ka-1",
     academicYearId: "ay-001",
     enrollmentDate: "2024-07-10",
     fatherName: "Ahmad Fauzi",
@@ -56,9 +64,13 @@ export const mockStudents: Student[] = [
     birthDate: "2020-07-10",
     birthPlace: "Bandung",
     address: "Jl. Anggrek No. 67, Bandung",
-    className: "Umar bin Khattab",
-    classId: "class-001",
-    halaqahId: "halaqah-001",
+    // kelas Assignment — model baru, satu-satunya yang dipakai dashboard
+    kelasId: "kelas-ka-1-a",
+    kelasName: "Kuttab Awal 1-A",
+    // model lama (deprecated): class_* + halaqah_*
+    classId: "class-ka",
+    className: "Kuttab Awal",
+    halaqahId: "level-ka-1",
     academicYearId: "ay-001",
     enrollmentDate: "2024-07-10",
     fatherName: "Ihsan Pratama",
@@ -79,9 +91,13 @@ export const mockStudents: Student[] = [
     birthDate: "2020-09-08",
     birthPlace: "Jakarta",
     address: "Jl. Cinta No. 23, Bandung",
-    className: "Umar bin Khattab",
-    classId: "class-001",
-    halaqahId: "halaqah-001",
+    // kelas Assignment — model baru, satu-satunya yang dipakai dashboard
+    kelasId: "kelas-ka-1-a",
+    kelasName: "Kuttab Awal 1-A",
+    // model lama (deprecated): class_* + halaqah_*
+    classId: "class-ka",
+    className: "Kuttab Awal",
+    halaqahId: "level-ka-1",
     academicYearId: "ay-001",
     enrollmentDate: "2024-07-10",
     fatherName: "Hamidah Rahman",
@@ -95,7 +111,7 @@ export const mockStudents: Student[] = [
     updatedAt: new Date("2024-09-12"),
   },
 
-  // Kelas B - Halaqah Umar
+  // --- Kuttab Awal 2-A (kelas-ka-2-a) ---
   {
     id: "student-005",
     nis: "KAF-2024-005",
@@ -104,9 +120,13 @@ export const mockStudents: Student[] = [
     birthDate: "2020-02-14",
     birthPlace: "Bandung",
     address: "Jl. Bunga No. 89, Bandung",
-    className: "Abu Bakar As-Siddiq",
-    classId: "class-002",
-    halaqahId: "halaqah-002",
+    // kelas Assignment — model baru, satu-satunya yang dipakai dashboard
+    kelasId: "kelas-ka-2-a",
+    kelasName: "Kuttab Awal 2-A",
+    // model lama (deprecated): class_* + halaqah_*
+    classId: "class-ka",
+    className: "Kuttab Awal",
+    halaqahId: "level-ka-2",
     academicYearId: "ay-001",
     enrollmentDate: "2024-07-10",
     fatherName: "Rizki Hermawan",
@@ -127,9 +147,13 @@ export const mockStudents: Student[] = [
     birthDate: "2020-04-19",
     birthPlace: "Bandung",
     address: "Jl. Dahlia No. 34, Bandung",
-    className: "Abu Bakar As-Siddiq",
-    classId: "class-002",
-    halaqahId: "halaqah-002",
+    // kelas Assignment — model baru, satu-satunya yang dipakai dashboard
+    kelasId: "kelas-ka-2-a",
+    kelasName: "Kuttab Awal 2-A",
+    // model lama (deprecated): class_* + halaqah_*
+    classId: "class-ka",
+    className: "Kuttab Awal",
+    halaqahId: "level-ka-2",
     academicYearId: "ay-001",
     enrollmentDate: "2024-07-10",
     fatherName: "Hasanah Sukoco",
@@ -150,9 +174,13 @@ export const mockStudents: Student[] = [
     birthDate: "2020-06-25",
     birthPlace: "Bandung",
     address: "Jl. Sakura No. 56, Bandung",
-    className: "Abu Bakar As-Siddiq",
-    classId: "class-002",
-    halaqahId: "halaqah-002",
+    // kelas Assignment — model baru, satu-satunya yang dipakai dashboard
+    kelasId: "kelas-ka-2-a",
+    kelasName: "Kuttab Awal 2-A",
+    // model lama (deprecated): class_* + halaqah_*
+    classId: "class-ka",
+    className: "Kuttab Awal",
+    halaqahId: "level-ka-2",
     academicYearId: "ay-001",
     enrollmentDate: "2024-07-10",
     fatherName: "Imran Jatnika",
@@ -166,7 +194,7 @@ export const mockStudents: Student[] = [
     updatedAt: new Date("2024-09-11"),
   },
 
-  // Kelas C - Halaqah Ali
+  // --- Qonuni 1-A (kelas-qo-1-a) ---
   {
     id: "student-008",
     nis: "KAF-2024-008",
@@ -175,9 +203,13 @@ export const mockStudents: Student[] = [
     birthDate: "2020-08-30",
     birthPlace: "Bandung",
     address: "Jl. Mawar No. 78, Bandung",
-    className: "Usman bin Affan",
-    classId: "class-003",
-    halaqahId: "halaqah-003",
+    // kelas Assignment — model baru, satu-satunya yang dipakai dashboard
+    kelasId: "kelas-qo-1-a",
+    kelasName: "Qonuni 1-A",
+    // model lama (deprecated): class_* + halaqah_*
+    classId: "class-qo",
+    className: "Qonuni",
+    halaqahId: "level-qo-1",
     academicYearId: "ay-001",
     enrollmentDate: "2024-07-10",
     fatherName: "Ummu Kulsum",
@@ -198,9 +230,13 @@ export const mockStudents: Student[] = [
     birthDate: "2020-10-05",
     birthPlace: "Bandung",
     address: "Jl. Teratai No. 90, Bandung",
-    className: "Usman bin Affan",
-    classId: "class-003",
-    halaqahId: "halaqah-003",
+    // kelas Assignment — model baru, satu-satunya yang dipakai dashboard
+    kelasId: "kelas-qo-1-a",
+    kelasName: "Qonuni 1-A",
+    // model lama (deprecated): class_* + halaqah_*
+    classId: "class-qo",
+    className: "Qonuni",
+    halaqahId: "level-qo-1",
     academicYearId: "ay-001",
     enrollmentDate: "2024-07-10",
     fatherName: "Azmi Rachmat",
@@ -219,10 +255,17 @@ export const getMockStudentById = (id: string): Student | undefined => {
   return mockStudents.find((s) => s.id === id);
 };
 
+/** Cari student's berdasarkan kelas Assignment (model baru). */
+export const getMockStudentsByKelas = (kelasId: string): Student[] => {
+  return mockStudents.filter((s) => s.kelasId === kelasId);
+};
+
+/** @deprecated Gunakan getMockStudentsByKelas — `classId` kini berisi id Jenjang. */
 export const getMockStudentsByClass = (classId: string): Student[] => {
   return mockStudents.filter((s) => s.classId === classId);
 };
 
+/** @deprecated `halaqahId` kini berisi id Level, bukan id halaqah. */
 export const getMockStudentsByHalaqah = (halaqahId: string): Student[] => {
   return mockStudents.filter((s) => s.halaqahId === halaqahId);
 };

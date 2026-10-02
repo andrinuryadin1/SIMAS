@@ -903,7 +903,7 @@ export async function getKelasStats(): Promise<KelasStatRow[]> {
         count("SELECT COUNT(*) AS c FROM students WHERE kelas_id = ? AND status = 'aktif'", k.id),
         db
           .prepare(
-            `SELECT COUNT(*) AS total, SUM(CASE WHEN status IN ('hadir','terlambat') THEN 1 ELSE 0 END) AS hadir
+            `SELECT COUNT(*) AS total, SUM(CASE WHEN a.status IN ('hadir','terlambat') THEN 1 ELSE 0 END) AS hadir
              FROM attendance a JOIN students s ON a.student_id = s.id
              WHERE s.kelas_id = ? AND a.date >= ? AND a.date <= ?`
           )
@@ -950,29 +950,37 @@ export async function getGuruStats(guruId: string): Promise<GuruStats> {
   const fmt = (d: Date) => d.toISOString().split("T")[0];
   const weekStart = fmt(startOfWeek);
 
-  // Find guru's kelas via pembina match on users.full_name
-  const guruNameRow = await db.prepare("SELECT full_name FROM users WHERE id = ?").get<{ full_name: string }>(guruId);
-  if (!guruNameRow) return { myStudents: 0, myAttendancePct: 0, myActiveCases: 0, myKelasId: null, myKelasName: null };
+  const empty = { myStudents: 0, myAttendancePct: 0, myActiveCases: 0, myKelasId: null, myKelasName: null };
 
-  const kelasRow = await db
-    .prepare("SELECT id, name FROM kelas WHERE pembina = ? LIMIT 1")
-    .get<{ id: string; name: string }>(guruNameRow.full_name);
+  // Relasi lewat `kelas.pembina_id` -> users(id), bukan pencocokan nama teks.
+  const kelasRows = await db
+    .prepare("SELECT id, name FROM kelas WHERE pembina_id = ? ORDER BY name")
+    .all<{ id: string; name: string }>(guruId);
 
-  if (!kelasRow) return { myStudents: 0, myAttendancePct: 0, myActiveCases: 0, myKelasId: null, myKelasName: null };
+  if (kelasRows.length === 0) return empty;
 
+  const kelasIds = kelasRows.map((k) => k.id);
+  const placeholders = kelasIds.map(() => "?").join(",");
+
+  // Agregasi across SEMUA kelas yang dibina. Versi lama memakai `LIMIT 1`,
+  // sehingga guru yang membina beberapa kelas hanya terhitung satu —
+  // dan angkanya selalu under-report.
   const [students, attWeek, activeCases] = await Promise.all([
-    count("SELECT COUNT(*) AS c FROM students WHERE kelas_id = ? AND status = 'aktif'", kelasRow.id),
+    count(
+      `SELECT COUNT(*) AS c FROM students WHERE status = 'aktif' AND kelas_id IN (${placeholders})`,
+      ...kelasIds
+    ),
     db
       .prepare(
-        `SELECT COUNT(*) AS total, SUM(CASE WHEN status IN ('hadir','terlambat') THEN 1 ELSE 0 END) AS hadir
+        `SELECT COUNT(*) AS total, SUM(CASE WHEN a.status IN ('hadir','terlambat') THEN 1 ELSE 0 END) AS hadir
          FROM attendance a JOIN students s ON a.student_id = s.id
-         WHERE s.kelas_id = ? AND a.date >= ?`
+         WHERE s.kelas_id IN (${placeholders}) AND a.date >= ?`
       )
-      .get<{ total: number; hadir: number | null }>(kelasRow.id, weekStart),
+      .get<{ total: number; hadir: number | null }>(...kelasIds, weekStart),
     count(
       `SELECT COUNT(*) AS c FROM special_cases sc JOIN students s ON sc.student_id = s.id
-       WHERE s.kelas_id = ? AND sc.status IN ('open','in_progress')`,
-      kelasRow.id
+       WHERE s.kelas_id IN (${placeholders}) AND sc.status IN ('open','in_progress')`,
+      ...kelasIds
     ),
   ]);
 
@@ -982,7 +990,9 @@ export async function getGuruStats(guruId: string): Promise<GuruStats> {
     myStudents: students,
     myAttendancePct: attendancePct,
     myActiveCases: activeCases,
-    myKelasId: kelasRow.id,
-    myKelasName: kelasRow.name,
+    // Kelas pertama (urut nama) untuk link/menu; angka di atas tetap menjumlah
+    // seluruh kelas yang dibina.
+    myKelasId: kelasRows[0].id,
+    myKelasName: kelasRows.length === 1 ? kelasRows[0].name : `${kelasRows.length} kelas`,
   };
 }
